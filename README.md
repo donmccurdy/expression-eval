@@ -2,6 +2,8 @@
 
 JavaScript expression parsing and evaluation, safely.
 
+Powered by [jsep](https://github.com/soney/jsep).
+
 ## Installation
 
 ```
