@@ -1,0 +1,25 @@
+{
+  "name": "jsexp",
+  "version": "1.0.0",
+  "description": "JavaScript expression parsing and evaluation, safely.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "expression",
+    "eval",
+    "evaluation",
+    "parser",
+    "ast",
+    "abstract",
+    "syntax",
+    "tree",
+    "math"
+  ],
+  "author": "Don McCurdy <dm@donmccurdy.com> (https://www.donmccurdy.com)",
+  "license": "MIT",
+  "dependencies": {
+    "jsep": "^0.3.0"
+  }
+}
