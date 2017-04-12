@@ -6,7 +6,8 @@ const fixtures = [
   {expr: 'one + three', expected: 4},
   {expr: 'foo.bar + 2', expected: 'baz2'},
   {expr: 'foo.bar + 2', expected: 'baz2'},
-  {expr: 'numMap[1 + two]', expected: 'three'}
+  {expr: 'numMap[1 + two]', expected: 'three'},
+  {expr: '"run" + "ning"', expected: 'running'}
 ];
 
 const context = {
