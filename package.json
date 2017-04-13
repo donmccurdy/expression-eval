@@ -4,7 +4,9 @@
   "description": "JavaScript expression parsing and evaluation, safely.",
   "main": "index.js",
   "scripts": {
-    "test": "node test.js"
+    "test": "node test.js",
+    "preversion": "npm run test",
+    "postversion": "git push && git push --tags && npm publish"
   },
   "keywords": [
     "expression",
