@@ -1,6 +1,6 @@
 {
   "name": "expression-eval",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "JavaScript expression parsing and evaluation, safely.",
   "main": "index.js",
   "scripts": {
