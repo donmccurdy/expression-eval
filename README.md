@@ -1,4 +1,4 @@
-# jsexp
+# expression-eval
 
 JavaScript expression parsing and evaluation, safely.
 
@@ -7,14 +7,14 @@ Powered by [jsep](https://github.com/soney/jsep).
 ## Installation
 
 ```
-npm install --save jsexp
+npm install --save expression-eval
 ```
 
 ## Parsing
 
 ```javascript
-const jsexp = require('jsexp');
-const ast = jsexp.parse('1 + foo');
+const expr = require('expression-eval');
+const ast = expr.parse('1 + foo');
 ```
 
 The result of the parse is an AST (abstract syntax tree), like:
@@ -38,15 +38,15 @@ The result of the parse is an AST (abstract syntax tree), like:
 ## Evaluation
 
 ```javascript
-const jsexp = require('jsexp');
-jsexp.eval('a + b / c', {a: 2, b: 2, c: 5}); // 0.8
+const expr = require('expression-eval');
+expr.eval('a + b / c', {a: 2, b: 2, c: 5}); // 0.8
 ```
 
 ## Compilation
 
 ```javascript
-const jsexp = require('jsexp');
-const fn = jsexp.compile('foo.bar + 10');
+const expr = require('expression-eval');
+const fn = expr.compile('foo.bar + 10');
 fn({foo: {bar: 'baz'}}); // 'baz10'
 ```
 

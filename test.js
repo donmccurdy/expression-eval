@@ -1,4 +1,4 @@
-const jsexp = require('./');
+const expr = require('./');
 const assert = require('assert');
 
 const fixtures = [
@@ -20,7 +20,7 @@ const context = {
 
 fixtures.forEach((o) => {
   assert.equal(
-    jsexp.compile(o.expr)(context),
+    expr.compile(o.expr)(context),
     o.expected,
     'Failed: ' + o.expr + ' === ' + o.expected);
 });
