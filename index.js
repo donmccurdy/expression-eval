@@ -1,5 +1,10 @@
 var jsep = require('jsep');
 
+/**
+ * Evaluation code from JSEP project, under MIT License.
+ * Copyright (c) 2013 Stephen Oney, http://jsep.from.so/
+ */
+
 var binops = {
   '||': function (a, b) { return a || b; },
   '&&': function (a, b) { return a && b; },
