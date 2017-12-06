@@ -6,52 +6,91 @@ var jsep = require('jsep');
  */
 
 var binops = {
-  '||': function (a, b) { return a || b; },
-  '&&': function (a, b) { return a && b; },
-  '|': function (a, b) { return a | b; },
-  '^': function (a, b) { return a ^ b; },
-  '&': function (a, b) { return a & b; },
-  '==': function (a, b) { return a == b; }, // jshint ignore:line
-  '!=': function (a, b) { return a != b; }, // jshint ignore:line
+  '||':  function (a, b) { return a || b; },
+  '&&':  function (a, b) { return a && b; },
+  '|':   function (a, b) { return a | b; },
+  '^':   function (a, b) { return a ^ b; },
+  '&':   function (a, b) { return a & b; },
+  '==':  function (a, b) { return a == b; }, // jshint ignore:line
+  '!=':  function (a, b) { return a != b; }, // jshint ignore:line
   '===': function (a, b) { return a === b; },
   '!==': function (a, b) { return a !== b; },
-  '<': function (a, b) { return a < b; },
-  '>': function (a, b) { return a > b; },
-  '<=': function (a, b) { return a <= b; },
-  '>=': function (a, b) { return a >= b; },
-  '<<': function (a, b) { return a << b; },
-  '>>': function (a, b) { return a >> b; },
+  '<':   function (a, b) { return a < b; },
+  '>':   function (a, b) { return a > b; },
+  '<=':  function (a, b) { return a <= b; },
+  '>=':  function (a, b) { return a >= b; },
+  '<<':  function (a, b) { return a << b; },
+  '>>':  function (a, b) { return a >> b; },
   '>>>': function (a, b) { return a >>> b; },
-  '+': function (a, b) { return a + b; },
-  '-': function (a, b) { return a - b; },
-  '*': function (a, b) { return a * b; },
-  '/': function (a, b) { return a / b; },
-  '%': function (a, b) { return a % b; }
+  '+':   function (a, b) { return a + b; },
+  '-':   function (a, b) { return a - b; },
+  '*':   function (a, b) { return a * b; },
+  '/':   function (a, b) { return a / b; },
+  '%':   function (a, b) { return a % b; }
 };
 
 var unops = {
-  '-' : function(a) { return -a; },
-  '+' : function(a) { return a; },
-  '~' : function(a) { return ~a; },
-  '!' : function(a) { return !a; },
+  '-' :  function (a) { return -a; },
+  '+' :  function (a) { return a; },
+  '~' :  function (a) { return ~a; },
+  '!' :  function (a) { return !a; },
 };
 
-function evaluate (node, context) {
-  if(node.type === 'BinaryExpression') {
-    return binops[node.operator](evaluate(node.left, context), evaluate(node.right, context));
-  } else if(node.type === 'UnaryExpression') {
-    return unops[node.operator](evaluate(node.argument, context));
-  } else if (node.type === 'MemberExpression') {
-    if (node.computed) {
-      return evaluate(node.object, context)[evaluate(node.property, context)];
-    } else {
-      return evaluate(node.object, context)[node.property.name];
-    }
-  } else if (node.type === 'Identifier') {
-    return context[node.name];
-  } else if(node.type === 'Literal') {
-    return node.value;
+function evaluate_array( list, context ) {
+  return list.map( function(v,i,a) { return evaluate( v, context ); } );
+}
+
+function evaluate ( node, context ) {
+  
+  switch ( node.type ) {
+    
+    case 'ArrayExpression': 
+      return evaluate_array( node.elements, context );
+    
+    case 'BinaryExpression':
+      return binops[ node.operator ]( evaluate( node.left, context ), evaluate( node.right, context ) );
+
+    case 'CallExpression':
+      let fn = evaluate( node.callee, context );
+      if ( typeof( fn ) === "function" ) {
+        return fn.apply( null, evaluate_array( node.arguments, context ) );
+      } else {
+        return undefined;
+      }
+  
+    case 'ConditionalExpression':
+      if ( evaluate( node.test, context ) ) {
+        return evaluate( node.consequent, context );
+      } else {
+        return evaluate( node.alternate, context );
+      }
+
+    case 'Identifier':
+      return context[ node.name ];
+
+    case 'Literal':
+      return node.value;
+
+    case 'LogicalExpression':
+      return binops[ node.operator ]( evaluate( node.left, context ), evaluate( node.right, context ) );
+  
+    case 'MemberExpression':
+      if ( node.computed ) {
+        return evaluate(node.object, context)[evaluate(node.property, context)];
+      } else {
+        return evaluate(node.object, context)[node.property.name];
+      }
+
+    case 'ThisExpression':
+      return this;
+
+    case 'UnaryExpression':
+      return unops[ node.operator ]( evaluate( node.argument, context ) );
+
+    default:
+      return undefined;
   }
+
 }
 
 function compile (expression) {
