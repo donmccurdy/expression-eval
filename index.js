@@ -82,7 +82,7 @@ function evaluate ( node, context ) {
       }
 
     case 'ThisExpression':
-      return context.this;
+      return this;
 
     case 'UnaryExpression':
       return unops[ node.operator ]( evaluate( node.argument, context ) );
