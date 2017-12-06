@@ -65,9 +65,6 @@ const fixtures = [
   {expr: 'foo["bar"]',   expected: 'baz' }, 
   {expr: 'foo[foo.bar]', expected: 'wow' },
 
-  // this expression
-  {expr: 'this.foo', expected: 'bar' },
-
   // unary expression
   {expr: '-one',   expected: -1   },
   {expr: '+two',   expected: 2    },
@@ -88,15 +85,17 @@ const context = {
   numMap: {10: 'ten', 3: 'three'},
   list: [1,2,3,4,5],
   func: function(x) { return x + 1; },
-  this: { foo: 'bar' },
   isArray: Array.isArray,
 
 };
 
+var tests = 0;
 var passed = 0;
 
+
 fixtures.forEach((o) => {
-  let val = expr.compile(o.expr)(context);
+  tests++;
+  var val = expr.compile(o.expr)(context);
   assert.equal(
     val,
     o.expected,
@@ -104,4 +103,15 @@ fixtures.forEach((o) => {
   passed++;
 });
 
-console.log('%s/%s tests passed.', passed, fixtures.length);
+// test 'this'
+(function testThis() {
+  tests++;
+  this.foo = 'bar';
+  var ast = expr.parse( 'this.foo' );
+  var val = expr.eval( ast, { 'baz': 'blah' } );
+  assert.equal( val, 'bar' );
+  passed++;
+})();
+
+
+console.log('%s/%s tests passed.', passed, tests);
