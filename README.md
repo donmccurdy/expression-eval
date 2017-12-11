@@ -52,4 +52,4 @@ fn({foo: {bar: 'baz'}}); // 'baz10'
 
 ## License
 
-Not yet licensed.
+MIT License.
