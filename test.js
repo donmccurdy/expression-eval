@@ -1,3 +1,5 @@
+'use strict';
+
 const expr = require('./');
 const assert = require('assert');
 
@@ -106,12 +108,11 @@ fixtures.forEach((o) => {
 // test 'this'
 (function testThis() {
   tests++;
-  this.foo = 'bar';
-  var ast = expr.parse( 'this.foo' );
-  var val = expr.eval( ast, { 'baz': 'blah' } );
-  assert.equal( val, 'bar' );
-  passed++;
+  var localThis = { A: 'aay', B: 'bee' };
+  var context = { baz: 'blah' };
+  var ast = expr.parse( 'this.A' );
+  var val = expr.eval.apply( localThis, [ ast, context ] );
+  if ( val === 'aay' ) passed++;
 })();
-
 
 console.log('%s/%s tests passed.', passed, tests);

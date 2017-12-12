@@ -1,3 +1,5 @@
+"use strict";
+
 var jsep = require('jsep');
 
 /**
@@ -36,60 +38,72 @@ var unops = {
   '!' :  function (a) { return !a; },
 };
 
-function evaluate_array( list, context ) {
-  return list.map( function(v,i,a) { return evaluate( v, context ); } );
-}
 
 function evaluate ( node, context ) {
-  
-  switch ( node.type ) {
-    
-    case 'ArrayExpression': 
-      return evaluate_array( node.elements, context );
-    
-    case 'BinaryExpression':
-      return binops[ node.operator ]( evaluate( node.left, context ), evaluate( node.right, context ) );
 
-    case 'CallExpression':
-      let fn = evaluate( node.callee, context );
-      if ( typeof( fn ) === "function" ) {
-        return fn.apply( null, evaluate_array( node.arguments, context ) );
-      } else {
-        return undefined;
-      }
-  
-    case 'ConditionalExpression':
-      if ( evaluate( node.test, context ) ) {
-        return evaluate( node.consequent, context );
-      } else {
-        return evaluate( node.alternate, context );
-      }
+  var saveThis = this;
 
-    case 'Identifier':
-      return context[ node.name ];
-
-    case 'Literal':
-      return node.value;
-
-    case 'LogicalExpression':
-      return binops[ node.operator ]( evaluate( node.left, context ), evaluate( node.right, context ) );
-  
-    case 'MemberExpression':
-      if ( node.computed ) {
-        return evaluate(node.object, context)[evaluate(node.property, context)];
-      } else {
-        return evaluate(node.object, context)[node.property.name];
-      }
-
-    case 'ThisExpression':
-      return this;
-
-    case 'UnaryExpression':
-      return unops[ node.operator ]( evaluate( node.argument, context ) );
-
-    default:
-      return undefined;
+  function evaluate_array( list ) {
+    return list.map( function(v,i,a) { return valueOf( v ); } );
   }
+  
+  function valueOf( node ) {
+
+    switch ( node.type ) {
+      
+      case 'ArrayExpression': 
+        return evaluate_array( node.elements );
+      
+      case 'BinaryExpression':
+        return binops[ node.operator ]( valueOf( node.left ), valueOf( node.right ) );
+  
+      case 'CallExpression':
+        let fn = valueOf( node.callee );
+        if ( typeof( fn ) === "function" ) {
+          return fn.apply( saveThis, evaluate_array( node.arguments ) );
+        } else {
+          return undefined;
+        }
+    
+      case 'ConditionalExpression':
+        if ( valueOf( node.test ) ) {
+          return valueOf( node.consequent );
+        } else {
+          return valueOf( node.alternate );
+        }
+  
+      case 'Identifier':
+        return context[ node.name ];
+  
+      case 'Literal':
+        return node.value;
+  
+      case 'LogicalExpression':
+        return binops[ node.operator ]( valueOf( node.left ), valueOf( node.right ) );
+    
+      case 'MemberExpression':
+        var object = valueOf( node.object );
+        if ( object === null || object === undefined ) return undefined;
+        var property;
+        if ( node.computed ) 
+          property = valueOf( node.property );
+        else
+          property = node.property.name
+        return object[property];
+  
+      case 'ThisExpression':
+        return saveThis;
+  
+      case 'UnaryExpression':
+        return unops[ node.operator ]( valueOf( node.argument ) );
+  
+      default:
+        return undefined;
+    }
+
+  }
+
+  return valueOf( node );
 
 }
 
