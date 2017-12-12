@@ -1,3 +1,5 @@
+'use strict';
+
 const expr = require('./');
 const assert = require('assert');
 
@@ -30,6 +32,7 @@ const fixtures = [
   // call expression
   {expr: 'func(5)',   expected: 6},               
   {expr: 'func(1+2)', expected: 4},
+  {expr: 'one(two)',  expected: undefined},
 
   // conditional expression
   {expr: '(true ? "true" : "false")',               expected: "true"  }, 
@@ -49,7 +52,7 @@ const fixtures = [
   {expr: 'true',  expected: true  }, // boolean literal
 
   // logical expression
-  {expr: 'true || false',   expected: true  },
+  {expr: 'false || true',   expected: true  },
   {expr: 'true && false',   expected: false },
   {expr: '1 == "1"',        expected: true  },
   {expr: '2 != "2"',        expected: false },
@@ -64,6 +67,7 @@ const fixtures = [
   {expr: 'foo.bar',      expected: 'baz' }, 
   {expr: 'foo["bar"]',   expected: 'baz' }, 
   {expr: 'foo[foo.bar]', expected: 'wow' },
+  {expr: 'bogus.thing',  expected: undefined },
 
   // unary expression
   {expr: '-one',   expected: -1   },
@@ -106,12 +110,19 @@ fixtures.forEach((o) => {
 // test 'this'
 (function testThis() {
   tests++;
-  this.foo = 'bar';
-  var ast = expr.parse( 'this.foo' );
-  var val = expr.eval( ast, { 'baz': 'blah' } );
-  assert.equal( val, 'bar' );
-  passed++;
+  var localThis = { A: 'aay', B: 'bee' };
+  var context = { baz: 'blah' };
+  var ast = expr.parse( 'this.A' );
+  var val = expr.eval.apply( localThis, [ ast, context ] );
+  if ( val === 'aay' ) passed++;
 })();
 
+// test the default route
+(function testBogus() {
+  tests++;
+  var ast = { type: "Bogus" };
+  var val = expr.eval( ast, {} );
+  if ( val === undefined ) passed++;
+})();
 
 console.log('%s/%s tests passed.', passed, tests);
