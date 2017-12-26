@@ -36,11 +36,11 @@ var unops = {
   '!' :  function (a) { return !a; },
 };
 
-function evaluate_array( list, context ) {
-  return list.map( function(v,i,a) { return evaluate( v, context ); } );
+function evaluateArray ( list, context ) {
+  return list.map((v) => evaluate(v, context));
 }
 
-function evaluate_member( node, context ) {
+function evaluateMember ( node, context ) {
   const object = evaluate(node.object, context);
   if ( node.computed ) {
     return [object, object[evaluate(node.property, context)]];
@@ -50,49 +50,44 @@ function evaluate_member( node, context ) {
 }
 
 function evaluate ( node, context ) {
-  
+
   switch ( node.type ) {
-    
-    case 'ArrayExpression': 
-      return evaluate_array( node.elements, context );
-    
+
+    case 'ArrayExpression':
+      return evaluateArray( node.elements, context );
+
     case 'BinaryExpression':
       return binops[ node.operator ]( evaluate( node.left, context ), evaluate( node.right, context ) );
 
     case 'CallExpression':
       let caller, fn;
       if (node.callee.type === 'MemberExpression') {
-        [ caller, fn ] = evaluate_member( node.callee, context );
+        [ caller, fn ] = evaluateMember( node.callee, context );
       } else {
         fn = evaluate( node.callee, context );
       }
-      if ( typeof( fn ) === "function" ) {
-        return fn.apply( caller, evaluate_array( node.arguments, context ) );
-      } else {
-        return undefined;
-      }
-  
+      if (typeof fn  !== 'function') return undefined;
+      return fn.apply( caller, evaluateArray( node.arguments, context ) );
+
     case 'ConditionalExpression':
-      if ( evaluate( node.test, context ) ) {
-        return evaluate( node.consequent, context );
-      } else {
-        return evaluate( node.alternate, context );
-      }
+      return evaluate( node.test, context )
+        ? evaluate( node.consequent, context )
+        : evaluate( node.alternate, context );
 
     case 'Identifier':
-      return context[ node.name ];
+      return context[node.name];
 
     case 'Literal':
       return node.value;
 
     case 'LogicalExpression':
       return binops[ node.operator ]( evaluate( node.left, context ), evaluate( node.right, context ) );
-  
+
     case 'MemberExpression':
-      return evaluate_member(node, context)[1];
+      return evaluateMember(node, context)[1];
 
     case 'ThisExpression':
-      return this;
+      return context;
 
     case 'UnaryExpression':
       return unops[ node.operator ]( evaluate( node.argument, context ) );

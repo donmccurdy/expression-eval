@@ -4,6 +4,7 @@
   "description": "JavaScript expression parsing and evaluation, safely.",
   "main": "index.js",
   "scripts": {
+    "dev": "budo browser.js:bundle.js",
     "test": "node test.js",
     "preversion": "npm run test",
     "postversion": "git push && git push --tags && npm publish"
@@ -23,5 +24,8 @@
   "license": "MIT",
   "dependencies": {
     "jsep": "^0.3.0"
+  },
+  "devDependencies": {
+    "budo": "^10.0.4"
   }
 }
