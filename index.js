@@ -40,6 +40,15 @@ function evaluate_array( list, context ) {
   return list.map( function(v,i,a) { return evaluate( v, context ); } );
 }
 
+function evaluate_member( node, context ) {
+  const object = evaluate(node.object, context);
+  if ( node.computed ) {
+    return [object, object[evaluate(node.property, context)]];
+  } else {
+    return [object, object[node.property.name]];
+  }
+}
+
 function evaluate ( node, context ) {
   
   switch ( node.type ) {
@@ -51,9 +60,14 @@ function evaluate ( node, context ) {
       return binops[ node.operator ]( evaluate( node.left, context ), evaluate( node.right, context ) );
 
     case 'CallExpression':
-      let fn = evaluate( node.callee, context );
+      let caller, fn;
+      if (node.callee.type === 'MemberExpression') {
+        [ caller, fn ] = evaluate_member( node.callee, context );
+      } else {
+        fn = evaluate( node.callee, context );
+      }
       if ( typeof( fn ) === "function" ) {
-        return fn.apply( null, evaluate_array( node.arguments, context ) );
+        return fn.apply( caller, evaluate_array( node.arguments, context ) );
       } else {
         return undefined;
       }
@@ -75,11 +89,7 @@ function evaluate ( node, context ) {
       return binops[ node.operator ]( evaluate( node.left, context ), evaluate( node.right, context ) );
   
     case 'MemberExpression':
-      if ( node.computed ) {
-        return evaluate(node.object, context)[evaluate(node.property, context)];
-      } else {
-        return evaluate(node.object, context)[node.property.name];
-      }
+      return evaluate_member(node, context)[1];
 
     case 'ThisExpression':
       return this;
