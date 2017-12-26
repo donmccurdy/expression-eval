@@ -75,6 +75,9 @@ const fixtures = [
   {expr: '!!true', expected: true },
   {expr: '~15',    expected: -16  },
 
+  // 'this' context
+  {expr: 'this.three', expected: 3 },
+
 ];
 
 const context = {
