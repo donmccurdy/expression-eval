@@ -64,6 +64,9 @@ const fixtures = [
   {expr: 'foo.bar',      expected: 'baz' }, 
   {expr: 'foo["bar"]',   expected: 'baz' }, 
   {expr: 'foo[foo.bar]', expected: 'wow' },
+  
+  // call expression with member
+  {expr: 'foo.func("bar")', expected: 'baz'},
 
   // unary expression
   {expr: '-one',   expected: -1   },
@@ -81,7 +84,7 @@ const context = {
   one: 1,
   two: 2,
   three: 3,
-  foo: {bar: 'baz', baz: "wow"},
+  foo: {bar: 'baz', baz: "wow", func: function(x) { return this[x]; }},
   numMap: {10: 'ten', 3: 'three'},
   list: [1,2,3,4,5],
   func: function(x) { return x + 1; },
