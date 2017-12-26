@@ -39,7 +39,8 @@ The result of the parse is an AST (abstract syntax tree), like:
 
 ```javascript
 const expr = require('expression-eval');
-expr.eval('a + b / c', {a: 2, b: 2, c: 5}); // 0.8
+const ast = expr.parse('a + b / c'); // abstract syntax tree (AST)
+const value = expr.eval(ast, {a: 2, b: 2, c: 5}); // 2.4
 ```
 
 ## Compilation
