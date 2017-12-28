@@ -58,11 +58,31 @@ function evaluate ( node, context ) {
         return binops[ node.operator ]( valueOf( node.left ), valueOf( node.right ) );
   
       case 'CallExpression':
-        let fn = valueOf( node.callee );
-        if ( typeof( fn ) === "function" ) {
-          return fn.apply( saveThis, evaluate_array( node.arguments ) );
-        } else {
+        let args = evaluate_array( node.arguments );
+        if ( node.callee.type === "MemberExpression" ) {
+          let obj = valueOf( node.callee.object );
+          let prop = 
+            ( node.callee.computed === "true" 
+            ? valueOf( node.callee.property ) 
+            : node.callee.property.name );
+          let test = obj;
+          while ( test && ! test.hasOwnProperty( prop ) ) {
+            test = test.__proto__;
+          }
+          if ( test ) {
+            let fn = test[prop];
+            if ( typeof( fn ) === "function" ) {
+              let result = fn.apply( obj, args );
+              return result;
+            }
+          }
           return undefined;
+        } else {
+          let fn = valueOf( node.callee );
+          if ( typeof( fn ) === "function" )
+            return fn.apply( saveThis, args );
+          else
+            return undefined;
         }
     
       case 'ConditionalExpression':

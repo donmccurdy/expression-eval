@@ -76,6 +76,9 @@ const fixtures = [
   {expr: '!!true', expected: true },
   {expr: '~15',    expected: -16  },
 
+  // member functions
+  {expr: '("foo").substr(0,1)', expected: 'f'},
+
 ];
 
 const context = {
