@@ -37,7 +37,7 @@ var unops = {
 };
 
 function evaluateArray ( list, context ) {
-  return list.map((v) => evaluate(v, context));
+  return list.map(function (v) { return evaluate(v, context); });
 }
 
 function evaluateMember ( node, context ) {
