@@ -41,7 +41,7 @@ function evaluateArray ( list, context ) {
 }
 
 function evaluateMember ( node, context ) {
-  const object = evaluate(node.object, context);
+  var object = evaluate(node.object, context);
   if ( node.computed ) {
     return [object, object[evaluate(node.property, context)]];
   } else {
@@ -60,13 +60,15 @@ function evaluate ( node, context ) {
       return binops[ node.operator ]( evaluate( node.left, context ), evaluate( node.right, context ) );
 
     case 'CallExpression':
-      let caller, fn;
+      var caller, fn, assign;
       if (node.callee.type === 'MemberExpression') {
-        [ caller, fn ] = evaluateMember( node.callee, context );
+        assign = evaluateMember( node.callee, context );
+        caller = assign[0];
+        fn = assign[1];
       } else {
         fn = evaluate( node.callee, context );
       }
-      if (typeof fn  !== 'function') return undefined;
+      if (typeof fn  !== 'function') { return undefined; }
       return fn.apply( caller, evaluateArray( node.arguments, context ) );
 
     case 'ConditionalExpression':
