@@ -1,11 +1,11 @@
 {
   "name": "expression-eval",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "JavaScript expression parsing and evaluation, safely.",
   "main": "index.js",
   "repository": {
-    "type" : "git",
-    "url" : "https://github.com/donmccurdy/expression-eval.git"
+    "type": "git",
+    "url": "https://github.com/donmccurdy/expression-eval.git"
   },
   "scripts": {
     "dev": "budo browser.js:bundle.js",
