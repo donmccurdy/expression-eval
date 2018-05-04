@@ -3,6 +3,10 @@
   "version": "1.2.2",
   "description": "JavaScript expression parsing and evaluation, safely.",
   "main": "index.js",
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/donmccurdy/expression-eval.git"
+  },
   "scripts": {
     "dev": "budo browser.js:bundle.js",
     "test": "node test.js",
