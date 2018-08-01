@@ -3,6 +3,7 @@
   "version": "1.2.3",
   "description": "JavaScript expression parsing and evaluation, safely.",
   "main": "index.js",
+  "typings": "index.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/donmccurdy/expression-eval.git"
