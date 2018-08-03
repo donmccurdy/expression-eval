@@ -61,7 +61,7 @@ For example:
 
 ```js
 const ast = expr.parse('foo[bar](baz)()');
-expr.eval(ast2, {
+expr.eval(ast, {
   foo: String,
   bar: 'constructor',
   baz: 'console.log("im in ur logs");'
