@@ -57,9 +57,10 @@ function evaluate ( node, context ) {
       return evaluateArray( node.elements, context );
 
     case 'BinaryExpression':
-      if (node.operator === '||') {
+      if (node.operator === '||') 
         return evaluate( node.left, context ) || evaluate( node.right, context )
-      }
+      else if(node.operator === '&&') 
+        return evaluate(node.left, context) && evaluate (node.right, context)
       return binops[ node.operator ]( evaluate( node.left, context ), evaluate( node.right, context ) );
 
     case 'CallExpression':
