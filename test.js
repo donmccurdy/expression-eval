@@ -60,6 +60,12 @@ const fixtures = [
   {expr: '2 <= 2',          expected: true  },
   {expr: '1 >= 2',          expected: false },
 
+  // logical expression lazy evaluation
+  {expr: 'true || throw()',  expected: true  },
+  {expr: 'false || true',    expected: true  },
+  {expr: 'false && throw()', expected: false  },
+  {expr: 'true && false',    expected: false  },
+
   // member expression
   {expr: 'foo.bar',      expected: 'baz' },
   {expr: 'foo["bar"]',   expected: 'baz' },
@@ -92,7 +98,7 @@ const context = {
   list: [1,2,3,4,5],
   func: function(x) { return x + 1; },
   isArray: Array.isArray,
-
+  throw: () => { throw new Error('Should not be called.'); }
 };
 
 var tests = 0;
@@ -100,7 +106,12 @@ var passed = 0;
 
 fixtures.forEach((o) => {
   tests++;
-  var val = expr.compile(o.expr)(context);
+  try {
+    var val = expr.compile(o.expr)(context);
+  } catch (e) {
+    console.error(`Error: ${o.expr}, expected ${o.expected}`);
+    throw e;
+  }
   assert.equal(val, o.expected, `Failed: ${o.expr} (${val}) === ${o.expected}`);
   passed++;
 });
