@@ -1,6 +1,7 @@
 # expression-eval
 
 [![Latest NPM release](https://img.shields.io/npm/v/expression-eval.svg)](https://www.npmjs.com/package/expression-eval)
+[![Minzipped size](https://badgen.net/bundlephobia/minzip/expression-eval)](https://bundlephobia.com/result?p=expression-eval)
 [![License](https://img.shields.io/npm/l/expression-eval.svg)](https://github.com/donmccurdy/expression-eval/blob/master/LICENSE)
 [![Build Status](https://travis-ci.com/donmccurdy/expression-eval.svg?branch=master)](https://travis-ci.com/donmccurdy/expression-eval)
 
