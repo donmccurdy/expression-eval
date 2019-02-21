@@ -116,4 +116,37 @@ fixtures.forEach((o) => {
   passed++;
 });
 
-console.log('%s/%s tests passed.', passed, tests);
+async function testAsync() {
+  const asyncContext = context;
+  asyncContext.asyncFunc = async function(a, b) {
+    return await a + b;
+  };
+  asyncContext.promiseFunc = function(a, b) {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => resolve(a + b), 1000);
+    })
+  }
+  const asyncFixtures = fixtures;
+  asyncFixtures.push({
+    expr: 'asyncFunc(one, two)',
+    expected: 3,
+  }, {
+    expr: 'promiseFunc(one, two)',
+    expected: 3,
+  });
+  for (let o of asyncFixtures) {
+    tests++;
+    try {
+      var val = await expr.compileAsync(o.expr)(asyncContext);
+    } catch (e) {
+      console.error(`Error: ${o.expr}, expected ${o.expected}`);
+      throw e;
+    }
+    assert.equal(val, o.expected, `Failed: ${o.expr} (${val}) === ${o.expected}`);
+    passed++;
+  }
+}
+
+testAsync().then(() => {
+  console.log('%s/%s tests passed.', passed, tests);
+})
