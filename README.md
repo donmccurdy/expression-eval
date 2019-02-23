@@ -50,6 +50,8 @@ const ast = expr.parse('a + b / c'); // abstract syntax tree (AST)
 const value = expr.eval(ast, {a: 2, b: 2, c: 5}); // 2.4
 ```
 
+Alternatively, use `evalAsync` for asynchronous evaluation.
+
 ### Compilation
 
 ```javascript
@@ -57,6 +59,8 @@ const expr = require('expression-eval');
 const fn = expr.compile('foo.bar + 10');
 fn({foo: {bar: 'baz'}}); // 'baz10'
 ```
+
+Alternatively, use `compileAsync` for asynchronous compilation.
 
 ## Security
 
