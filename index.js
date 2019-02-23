@@ -1,11 +1,11 @@
-var jsep = require('jsep');
+const jsep = require('jsep');
 
 /**
  * Evaluation code from JSEP project, under MIT License.
  * Copyright (c) 2013 Stephen Oney, http://jsep.from.so/
  */
 
-var binops = {
+const binops = {
   '||':  function (a, b) { return a || b; },
   '&&':  function (a, b) { return a && b; },
   '|':   function (a, b) { return a | b; },
@@ -29,7 +29,7 @@ var binops = {
   '%':   function (a, b) { return a % b; }
 };
 
-var unops = {
+const unops = {
   '-' :  function (a) { return -a; },
   '+' :  function (a) { return a; },
   '~' :  function (a) { return ~a; },
@@ -46,7 +46,7 @@ async function evaluateArrayAsync( list, context ) {
 }
 
 function evaluateMember ( node, context ) {
-  var object = evaluate(node.object, context);
+  const object = evaluate(node.object, context);
   if ( node.computed ) {
     return [object, object[evaluate(node.property, context)]];
   } else {
@@ -55,7 +55,7 @@ function evaluateMember ( node, context ) {
 }
 
 async function evaluateMemberAsync( node, context ) {
-  var object = await evaluateAsync(node.object, context);
+  const object = await evaluateAsync(node.object, context);
   if (  node.computed) {
     return [object, object[await evaluateAsync(node.property, context)]];
   } else {
@@ -74,7 +74,7 @@ function evaluate ( node, context ) {
       return binops[ node.operator ]( evaluate( node.left, context ), evaluate( node.right, context ) );
 
     case 'CallExpression':
-      var caller, fn, assign;
+      let caller, fn, assign;
       if (node.callee.type === 'MemberExpression') {
         assign = evaluateMember( node.callee, context );
         caller = assign[0];
@@ -99,7 +99,7 @@ function evaluate ( node, context ) {
     case 'LogicalExpression':
       if (node.operator === '||') {
         return evaluate( node.left, context ) || evaluate( node.right, context );
-      } else if (node.operator === '&&') { 
+      } else if (node.operator === '&&') {
         return evaluate( node.left, context ) && evaluate( node.right, context );
       }
       return binops[ node.operator ]( evaluate( node.left, context ), evaluate( node.right, context ) );
@@ -135,7 +135,7 @@ async function evaluateAsync( node, context ) {
     }
 
     case 'CallExpression':
-      var caller, fn, assign;
+      let caller, fn, assign;
       if (node.callee.type === 'MemberExpression') {
         assign = await evaluateMemberAsync( node.callee, context );
         caller = assign[0];
