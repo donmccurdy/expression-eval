@@ -31,7 +31,7 @@ const binops = {
 
 const unops = {
   '-' :  function (a) { return -a; },
-  '+' :  function (a) { return a; },
+  '+' :  function (a) { return +a; },
   '~' :  function (a) { return ~a; },
   '!' :  function (a) { return !a; },
 };
