@@ -148,7 +148,7 @@ async function evaluateAsync( node, context ) {
       }
       return await fn.apply(
         caller,
-        await evaluateArrayAsync( node.arguments, context ),
+        await evaluateArrayAsync( node.arguments, context )
       );
 
     case 'ConditionalExpression':
