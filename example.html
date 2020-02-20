@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Expresssion-Eval Example</title>
+	<style>
+		body {
+			background-color: #22222a;
+		}
+		.centered {
+			flex-direction: column;
+			justify-content: center;
+			display: flex;
+			font-family:sans-serif;
+			font-size: large;
+			color: white;
+		}
+		.centered > * {
+			margin:auto;
+		}
+		.centered > textarea {
+			width:60%;
+			height: 10vh;
+			font-size: larger;
+			font-weight: bold;
+		}
+		.centered > button {
+			cursor: pointer;
+			background-color: #7b846c;
+			border: none;
+			width: 30%;
+			padding: 20px;
+			font-size: large;
+		}
+		.centered > button:hover {
+			background-color: #616a53;
+		}
+	</style>
+</head>
+<body>
+	<div class="centered">
+		<label><h1>Test expression-eval evaulation:</h1></label>
+		<br />
+		<textarea placeholder=" Expression e.g.
+ a + b " id="inputTextExpression"></textarea>
+		<textarea placeholder=" Context e.g.
+ {a:1,b:2}" id="inputTextContext"></textarea>
+		<br />
+		<button id="execute"><h2>Evaluate</h2></button>
+		<br />
+		<br />
+		<label><h1>Result:</h1></label>
+		<br />
+		<textarea id="result" disabled></textarea>
+	</div>
+</body>
+<script src="./umd/expression-eval.min.js"></script>
+<script>
+	document.getElementById("execute").addEventListener("click", function() {
+		let expression = document.getElementById("inputTextExpression").value;
+		let values = document.getElementById("inputTextContext").value;
+		values = eval(`(() => {return ${values};})()`);
+		console.log(values)
+		expression = expressionEval.parse(expression);
+		values = expressionEval.eval(expression, values);
+		document.getElementById("result").value = values;
+	})
+</script>
+</html>

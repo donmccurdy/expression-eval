@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "budo browser.js:bundle.js",
     "test": "node test.js",
+    "build": "npx webpack --config webpack.config.js",
     "preversion": "npm run test",
     "postversion": "git push && git push --tags && npm publish"
   },
@@ -31,6 +32,11 @@
     "jsep": "^0.3.0"
   },
   "devDependencies": {
-    "budo": "^11.6.3"
-  }
+    "budo": "^11.6.3",
+    "webpack": "^4.41.6",
+    "webpack-cli": "^3.3.11"
+  },
+	"engines": {
+		"node": ">= 6.0.0"
+	}
 }
