@@ -15,6 +15,17 @@ Powered by [jsep](https://github.com/soney/jsep).
 npm install --save expression-eval
 ```
 
+### Standalone script
+
+```html
+<script src="./umd/expression-eval.min.js"></script>
+<script>
+  exressionEval.parse()
+  exressionEval.eval()
+  ...
+</script>
+```
+
 ## API
 
 ### Parsing
