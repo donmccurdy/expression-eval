@@ -24,6 +24,7 @@
 			height: 10vh;
 			font-size: larger;
 			font-weight: bold;
+			padding:10px;
 		}
 		.centered > button {
 			cursor: pointer;
@@ -42,10 +43,10 @@
 	<div class="centered">
 		<label><h1>Test <code style="text-transform: uppercase;">expression-eval</code> evaluation:</h1></label>
 		<br />
-		<textarea placeholder=" Expression e.g.
- a + b " id="inputTextExpression"></textarea>
-		<textarea placeholder=" Context e.g.
- {a:1,b:2}" id="inputTextContext"></textarea>
+		<textarea placeholder="Expression e.g.
+a + b " id="inputTextExpression"></textarea>
+		<textarea placeholder="Context e.g.
+{a:1,b:2}" id="inputTextContext"></textarea>
 		<br />
 		<button id="execute"><h2>Evaluate</h2></button>
 		<br />
@@ -57,14 +58,24 @@
 </body>
 <script src="./umd/expression-eval.min.js"></script>
 <script>
-	document.getElementById("execute").addEventListener("click", function() {
-		let expression = document.getElementById("inputTextExpression").value;
-		let values = document.getElementById("inputTextContext").value;
+	let context = document.getElementById("inputTextContext");
+	let expr = document.getElementById("inputTextExpression");
+	let execute = document.getElementById("execute");
+	function evaluate() {
+		let expression = expr.value;
+		let values = context.value;
 		values = eval(`(() => {return ${values};})()`);
-		console.log(values)
+		console.log(values);
 		expression = expressionEval.parse(expression);
 		values = expressionEval.eval(expression, values);
 		document.getElementById("result").value = values;
+	}
+	execute.addEventListener("click", evaluate)
+	context.addEventListener('keyup', function (event) {
+		if (event.keyCode === 13) {
+			event.preventDefault();
+			evaluate();
+		}
 	})
 </script>
 </html>
