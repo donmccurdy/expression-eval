@@ -16,9 +16,9 @@ npm install --save expression-eval
 ```
 
 ### Standalone script
-
+##### WARNING: As of March 5, 2020, Microbundle is reporting several security vulnerabilities; please don't use the standalone scripts in production. 
 ```html
-<script src="./umd/expression-eval.min.js"></script>
+<script src="./dist/expression-eval.umd.js"></script>
 <script>
   exressionEval.parse()
   exressionEval.eval()
