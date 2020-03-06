@@ -37,8 +37,5 @@
   "devDependencies": {
     "budo": "^11.6.3",
     "microbundle": "^0.11.0"
-  },
-  "engines": {
-    "node": ">= 6.0.0"
   }
 }
