@@ -2,7 +2,10 @@
   "name": "expression-eval",
   "version": "2.1.0",
   "description": "JavaScript expression parsing and evaluation.",
-  "main": "index.js",
+  "source": "index.js",
+  "main": "dist/expression-eval.js",
+  "module": "dist/expression-eval.module.js",
+  "unpkg": "dist/expression-eval.umd.js",
   "typings": "index.d.ts",
   "repository": {
     "type": "git",
@@ -11,7 +14,7 @@
   "scripts": {
     "dev": "budo browser.js:bundle.js",
     "test": "node test.js",
-    "build": "npx webpack --config webpack.config.js",
+    "build": "microbundle",
     "preversion": "npm run test",
     "postversion": "git push && git push --tags && npm publish"
   },
@@ -33,10 +36,9 @@
   },
   "devDependencies": {
     "budo": "^11.6.3",
-    "webpack": "^4.41.6",
-    "webpack-cli": "^3.3.11"
+    "microbundle": "^0.11.0"
   },
-	"engines": {
-		"node": ">= 6.0.0"
-	}
+  "engines": {
+    "node": ">= 6.0.0"
+  }
 }
