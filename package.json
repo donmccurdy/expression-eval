@@ -28,7 +28,8 @@
   "author": "Don McCurdy <dm@donmccurdy.com>",
   "license": "MIT",
   "dependencies": {
-    "jsep": "^0.3.0"
+    "jsep": "^0.3.0",
+    "lodash": "^4.17.15"
   },
   "devDependencies": {
     "budo": "^11.6.3"
