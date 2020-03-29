@@ -12,9 +12,9 @@
     "url": "https://github.com/donmccurdy/expression-eval.git"
   },
   "scripts": {
-    "dev": "budo browser.js:bundle.js",
-    "test": "node test.js",
+    "dev": "microbundle watch",
     "build": "microbundle",
+    "test": "node test.js",
     "preversion": "npm run test",
     "postversion": "git push && git push --tags && npm publish"
   },
@@ -35,7 +35,6 @@
     "jsep": "^0.3.0"
   },
   "devDependencies": {
-    "budo": "^11.6.3",
     "microbundle": "^0.11.0"
   }
 }
