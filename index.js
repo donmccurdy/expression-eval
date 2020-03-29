@@ -1,4 +1,4 @@
-const jsep = require('jsep');
+import jsep from 'jsep';
 
 /**
  * Evaluation code from JSEP project, under MIT License.
