@@ -1,6 +1,6 @@
 {
   "name": "expression-eval",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "JavaScript expression parsing and evaluation.",
   "source": "index.js",
   "main": "dist/expression-eval.js",
