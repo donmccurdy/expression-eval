@@ -15,7 +15,7 @@
     "dev": "microbundle watch",
     "build": "microbundle",
     "test": "node test.js",
-    "preversion": "npm run test",
+    "preversion": "npm run build && npm run test",
     "postversion": "git push && git push --tags && npm publish"
   },
   "keywords": [
