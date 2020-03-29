@@ -41,7 +41,7 @@ function evaluateArray ( list, context ) {
 }
 
 async function evaluateArrayAsync( list, context ) {
-  const res = await Promise.all(list.map((v) => evaluateAsync(v, context)));
+  const res = await Promise.all(list.map((v) => evalAsync(v, context)));
   return res;
 }
 
@@ -55,9 +55,9 @@ function evaluateMember ( node, context ) {
 }
 
 async function evaluateMemberAsync( node, context ) {
-  const object = await evaluateAsync(node.object, context);
+  const object = await evalAsync(node.object, context);
   if (  node.computed) {
-    return [object, object[await evaluateAsync(node.property, context)]];
+    return [object, object[await evalAsync(node.property, context)]];
   } else {
     return [object, object[node.property.name]];
   }
@@ -119,7 +119,7 @@ function evaluate ( node, context ) {
 
 }
 
-async function evaluateAsync( node, context ) {
+async function evalAsync( node, context ) {
 
   switch ( node.type ) {
 
@@ -128,8 +128,8 @@ async function evaluateAsync( node, context ) {
 
     case 'BinaryExpression': {
       const [left, right] = await Promise.all([
-        evaluateAsync( node.left, context ),
-        evaluateAsync( node.right, context )
+        evalAsync( node.left, context ),
+        evalAsync( node.right, context )
       ]);
       return binops[ node.operator ]( left, right );
     }
@@ -141,7 +141,7 @@ async function evaluateAsync( node, context ) {
         caller = assign[0];
         fn = assign[1];
       } else {
-        fn = await evaluateAsync( node.callee, context );
+        fn = await evalAsync( node.callee, context );
       }
       if (typeof fn !== 'function') {
         return undefined;
@@ -152,9 +152,9 @@ async function evaluateAsync( node, context ) {
       );
 
     case 'ConditionalExpression':
-      return (await evaluateAsync( node.test, context ))
-        ? await evaluateAsync( node.consequent, context )
-        : await evaluateAsync( node.alternate, context );
+      return (await evalAsync( node.test, context ))
+        ? await evalAsync( node.consequent, context )
+        : await evalAsync( node.alternate, context );
 
     case 'Identifier':
       return context[node.name];
@@ -165,19 +165,19 @@ async function evaluateAsync( node, context ) {
     case 'LogicalExpression': {
       if (node.operator === '||') {
         return (
-          (await evaluateAsync( node.left, context )) ||
-          (await evaluateAsync( node.right, context ))
+          (await evalAsync( node.left, context )) ||
+          (await evalAsync( node.right, context ))
         );
       } else if (node.operator === '&&') {
         return (
-          (await evaluateAsync( node.left, context )) &&
-          (await evaluateAsync( node.right, context ))
+          (await evalAsync( node.left, context )) &&
+          (await evalAsync( node.right, context ))
         );
       }
 
       const [left, right] = await Promise.all([
-        evaluateAsync( node.left, context ),
-        evaluateAsync( node.right, context )
+        evalAsync( node.left, context ),
+        evalAsync( node.right, context )
       ]);
 
       return binops[ node.operator ]( left, right );
@@ -190,7 +190,7 @@ async function evaluateAsync( node, context ) {
       return context;
 
     case 'UnaryExpression':
-      return unops[ node.operator ](await evaluateAsync( node.argument, context ));
+      return unops[ node.operator ](await evalAsync( node.argument, context ));
 
     default:
       return undefined;
@@ -202,13 +202,13 @@ function compile (expression) {
 }
 
 function compileAsync(expression) {
-  return evaluateAsync.bind(null, jsep(expression));
+  return evalAsync.bind(null, jsep(expression));
 }
 
-module.exports = {
-  parse: jsep,
-  eval: evaluate,
-  evalAsync: evaluateAsync,
-  compile: compile,
-  compileAsync: compileAsync
+export {
+  jsep as parse,
+  evaluate as eval,
+  evalAsync,
+  compile,
+  compileAsync
 };
