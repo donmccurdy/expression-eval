@@ -1,5 +1,4 @@
 const jsep = require('jsep');
-const _ = require('lodash');
 
 /**
  * Evaluation code from JSEP project, under MIT License.
@@ -207,19 +206,19 @@ function compileAsync(expression) {
 }
 
 // Added functions to inject Custom Unary Operators (and override existing ones)
-function addCustomUnOps(customUnops){
-  _.forOwn(customUnops, (value, key) => {
-		jsep.addUnaryOp(key);
-		_.merge(unops, {[key]: value});
-	});
+function addUnaryOp(customUnaryOps){
+  for (let [key, value] of Object.entries(customUnaryOps)) {
+    jsep.addUnaryOp(key);
+    unops[key] = value;
+  }
 }
 
 // Added functions to inject Custom Binary Operators (and override existing ones)
-function addCustomBinOps(customBinops){
-  _.forOwn(customBinops, (value, key) => {
-		jsep.addUnaryOp(key);
-		_.merge(binops, {[key]: value});
-	});
+function addBinaryOp(customBinaryOps){
+  for (let [key, value] of Object.entries(customBinaryOps)) {
+    jsep.addBinaryOp(key);
+    binops[key] = value;
+  }
 }
 
 module.exports = {
@@ -228,6 +227,6 @@ module.exports = {
   evalAsync: evaluateAsync,
   compile: compile,
   compileAsync: compileAsync,
-  addCustomUnOps: addCustomUnOps,
-  addCustomBinOps: addCustomBinOps
+  addUnaryOp: addUnaryOp,
+  addBinaryOp: addBinaryOp
 };
