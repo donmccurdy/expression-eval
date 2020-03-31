@@ -206,19 +206,15 @@ function compileAsync(expression) {
 }
 
 // Added functions to inject Custom Unary Operators (and override existing ones)
-function addUnaryOp(customUnaryOps){
-  for (let [key, value] of Object.entries(customUnaryOps)) {
-    jsep.addUnaryOp(key);
-    unops[key] = value;
-  }
+function addUnaryOp(operator, _function){
+  jsep.addUnaryOp(operator);
+  unops[operator] = _function;
 }
 
 // Added functions to inject Custom Binary Operators (and override existing ones)
-function addBinaryOp(customBinaryOps){
-  for (let [key, value] of Object.entries(customBinaryOps)) {
-    jsep.addBinaryOp(key);
-    binops[key] = value;
-  }
+function addBinaryOp(operator, _function){
+  jsep.addBinaryOp(operator);
+  binops[operator] = _function;
 }
 
 module.exports = {
