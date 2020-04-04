@@ -85,6 +85,9 @@ const fixtures = [
   // 'this' context
   {expr: 'this.three', expected: 3 },
 
+  // custom operators
+  {expr: '@2', expected: 'two' },
+  {expr: '3#4', expected: 3.4  },
 ];
 
 const context = {
@@ -101,6 +104,15 @@ const context = {
   isArray: Array.isArray,
   throw: () => { throw new Error('Should not be called.'); }
 };
+
+expr.addUnaryOp('@', (a) => {
+  if (a === 2) {
+    return 'two';
+  }
+  throw new Error('Unexpected value: ' + a);
+});
+
+expr.addBinaryOp('#', (a, b) => a + b / 10);
 
 var tests = 0;
 var passed = 0;
