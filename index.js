@@ -205,10 +205,24 @@ function compileAsync(expression) {
   return evalAsync.bind(null, jsep(expression));
 }
 
+// Added functions to inject Custom Unary Operators (and override existing ones)
+function addUnaryOp(operator, _function){
+  jsep.addUnaryOp(operator);
+  unops[operator] = _function;
+}
+
+// Added functions to inject Custom Binary Operators (and override existing ones)
+function addBinaryOp(operator, _function){
+  jsep.addBinaryOp(operator);
+  binops[operator] = _function;
+}
+
 export {
   jsep as parse,
   evaluate as eval,
   evalAsync,
   compile,
-  compileAsync
+  compileAsync,
+  addUnaryOp,
+  addBinaryOp
 };
