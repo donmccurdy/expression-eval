@@ -1,4 +1,4 @@
-const expr = require('./');
+const expr = require('./dist/expression-eval.js');
 const assert = require('assert');
 
 const fixtures = [

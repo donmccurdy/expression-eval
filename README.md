@@ -11,8 +11,21 @@ Powered by [jsep](https://github.com/soney/jsep).
 
 ## Installation
 
+Install:
+
 ```
 npm install --save expression-eval
+```
+
+Import:
+
+```js
+// ES6
+import { parse, eval } from 'expression-eval';
+// CommonJS
+const { parse, eval } = require('expression-eval');
+// UMD / standalone script
+const { parse, eval } = window.expressionEval;
 ```
 
 ## API
@@ -20,8 +33,8 @@ npm install --save expression-eval
 ### Parsing
 
 ```javascript
-const expr = require('expression-eval');
-const ast = expr.parse('1 + foo');
+import { parse } from 'expression-eval';
+const ast = parse('1 + foo');
 ```
 
 The result of the parse is an AST (abstract syntax tree), like:
@@ -45,9 +58,9 @@ The result of the parse is an AST (abstract syntax tree), like:
 ### Evaluation
 
 ```javascript
-const expr = require('expression-eval');
-const ast = expr.parse('a + b / c'); // abstract syntax tree (AST)
-const value = expr.eval(ast, {a: 2, b: 2, c: 5}); // 2.4
+import { parse, eval } from 'expression-eval';
+const ast = parse('a + b / c'); // abstract syntax tree (AST)
+const value = eval(ast, {a: 2, b: 2, c: 5}); // 2.4
 ```
 
 Alternatively, use `evalAsync` for asynchronous evaluation.
@@ -55,8 +68,8 @@ Alternatively, use `evalAsync` for asynchronous evaluation.
 ### Compilation
 
 ```javascript
-const expr = require('expression-eval');
-const fn = expr.compile('foo.bar + 10');
+import { compile } from 'expression-eval';
+const fn = compile('foo.bar + 10');
 fn({foo: {bar: 'baz'}}); // 'baz10'
 ```
 

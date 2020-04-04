@@ -1,17 +1,21 @@
 {
   "name": "expression-eval",
-  "version": "2.1.0",
+  "version": "3.0.4",
   "description": "JavaScript expression parsing and evaluation.",
-  "main": "index.js",
+  "source": "index.js",
+  "main": "dist/expression-eval.js",
+  "module": "dist/expression-eval.module.js",
+  "unpkg": "dist/expression-eval.umd.js",
   "typings": "index.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/donmccurdy/expression-eval.git"
   },
   "scripts": {
-    "dev": "budo browser.js:bundle.js",
+    "dev": "microbundle watch",
+    "build": "microbundle",
     "test": "node test.js",
-    "preversion": "npm run test",
+    "preversion": "npm run build && npm run test && git add -A dist",
     "postversion": "git push && git push --tags && npm publish"
   },
   "keywords": [
@@ -31,6 +35,6 @@
     "jsep": "^0.3.0"
   },
   "devDependencies": {
-    "budo": "^11.6.3"
+    "microbundle": "^0.11.0"
   }
 }

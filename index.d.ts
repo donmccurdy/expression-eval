@@ -1,4 +1,4 @@
-import * as jsep from "jsep";
+import * as jsep from 'jsep';
 
 declare function compile(expression: string | jsep.Expression): (context: object) => any;
 declare function compileAsync(expression: string | jsep.Expression): (context: object) => Promise<any>;
