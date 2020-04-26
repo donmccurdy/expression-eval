@@ -15,9 +15,9 @@
     "dev": "microbundle watch",
     "build": "microbundle",
     "test": "node test.js",
-    "lint": "cp test.js index.test-d.ts && npx tsd; npm run clean",
-    "clean": "rm index.test-d.ts && git checkout -- dist",
-    "preversion": "npm run build && npm run test && git add -A dist",
+    "lint": "cp test.js index.test-d.ts && npx tsd; rm index.test-d.ts",
+    "clean": "git checkout -- dist",
+    "preversion": "npm run build && npm run lint && npm run test && git add -A dist",
     "postversion": "git push && git push --tags && npm publish"
   },
   "keywords": [
