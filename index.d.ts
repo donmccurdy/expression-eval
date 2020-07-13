@@ -1,4 +1,4 @@
-import * as jsep from 'jsep';
+import jsep from 'jsep';
 
 declare type operand = number | string;
 declare type unaryCallback = (a: operand) => operand;
