@@ -88,6 +88,8 @@ const fixtures = [
   // custom operators
   {expr: '@2', expected: 'two' },
   {expr: '3#4', expected: 3.4  },
+  {expr: '(1 # 2 # 3)', expected: 1.5 }, // Fails with undefined precedence, see issue #45
+  {expr: '1 + 2 ~ 3', expected: 9 }, // ~ is * but with low precedence
 ];
 
 const context = {
@@ -113,6 +115,8 @@ expr.addUnaryOp('@', (a) => {
 });
 
 expr.addBinaryOp('#', (a, b) => a + b / 10);
+
+expr.addBinaryOp('~', 1, (a, b) => a * b);
 
 var tests = 0;
 var passed = 0;

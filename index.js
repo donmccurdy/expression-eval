@@ -5,6 +5,31 @@ import jsep from 'jsep';
  * Copyright (c) 2013 Stephen Oney, http://jsep.from.so/
  */
 
+// Default operator precedence from https://github.com/EricSmekens/jsep/blob/master/src/jsep.js#L55
+const DEFAULT_PRECEDENCE = {
+  '||': 1,
+  '&&': 2,
+  '|': 3,
+  '^': 4,
+  '&': 5,
+  '==': 6,
+  '!=': 6,
+  '===': 6,
+  '!==': 6,
+  '<': 7,
+  '>': 7,
+  '<=': 7,
+  '>=': 7,
+  '<<':8,
+  '>>': 8,
+  '>>>': 8,
+  '+': 9,
+  '-': 9,
+  '*': 10,
+  '/': 10,
+  '%': 10
+};
+
 const binops = {
   '||':  function (a, b) { return a || b; },
   '&&':  function (a, b) { return a && b; },
@@ -212,9 +237,14 @@ function addUnaryOp(operator, _function){
 }
 
 // Added functions to inject Custom Binary Operators (and override existing ones)
-function addBinaryOp(operator, _function){
-  jsep.addBinaryOp(operator);
-  binops[operator] = _function;
+function addBinaryOp(operator, precedence_or_fn, _function){
+  if (_function) {
+    jsep.addBinaryOp(operator, precedence_or_fn);
+    binops[operator] = _function;
+  } else {
+    jsep.addBinaryOp(operator, DEFAULT_PRECEDENCE[operator] || 1);
+    binops[operator] = precedence_or_fn;
+  }
 }
 
 export {
