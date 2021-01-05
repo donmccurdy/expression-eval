@@ -36,7 +36,7 @@
     "jsep": "^0.3.0"
   },
   "devDependencies": {
-    "microbundle": "^0.11.0"
+    "microbundle": "^0.13.0"
   },
   "files": [
     "dist/",
