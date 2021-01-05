@@ -16,8 +16,7 @@
     "build": "microbundle",
     "test": "node test.js",
     "lint": "cp test.js index.test-d.ts && npx tsd; rm index.test-d.ts",
-    "clean": "git checkout -- dist",
-    "preversion": "npm run build && npm run lint && npm run test && git add -A dist",
+    "preversion": "npm run build && npm run lint && npm run test",
     "postversion": "git push && git push --tags && npm publish"
   },
   "keywords": [
@@ -38,5 +37,14 @@
   },
   "devDependencies": {
     "microbundle": "^0.11.0"
-  }
+  },
+  "files": [
+    "dist/",
+    "index.js",
+    "index.d.ts",
+    "README.md",
+    "LICENSE",
+    "package.json",
+    "package-lock.json"
+  ]
 }
