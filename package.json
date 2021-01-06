@@ -2,11 +2,11 @@
   "name": "expression-eval",
   "version": "4.0.0",
   "description": "JavaScript expression parsing and evaluation.",
-  "source": "index.js",
+  "source": "index.ts",
   "main": "dist/expression-eval.js",
   "module": "dist/expression-eval.module.js",
   "unpkg": "dist/expression-eval.umd.js",
-  "types": "index.d.ts",
+  "types": "dist/index.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/donmccurdy/expression-eval.git"
@@ -14,8 +14,7 @@
   "scripts": {
     "dev": "microbundle watch",
     "build": "microbundle",
-    "test": "node test.js",
-    "lint": "cp test.js index.test-d.ts && npx tsd; rm index.test-d.ts",
+    "test": "node test.js | tap-spec",
     "preversion": "npm run build && npm run lint && npm run test",
     "postversion": "git push && git push --tags && npm publish"
   },
@@ -36,12 +35,18 @@
     "jsep": "^0.3.0"
   },
   "devDependencies": {
-    "microbundle": "^0.13.0"
+    "@types/tape": "^4.13.0",
+    "@typescript-eslint/eslint-plugin": "^4.12.0",
+    "eslint": "^7.17.0",
+    "microbundle": "^0.13.0",
+    "source-map-support": "^0.5.19",
+    "tap-spec": "^5.0.0",
+    "tape": "^5.1.1",
+    "typescript": "^4.1.3"
   },
   "files": [
     "dist/",
     "index.js",
-    "index.d.ts",
     "README.md",
     "LICENSE",
     "package.json",

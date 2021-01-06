@@ -1,5 +1,7 @@
+require('source-map-support').install();
+
 const expr = require('./dist/expression-eval.js');
-const assert = require('assert');
+const tape = require('tape');
 
 const fixtures = [
 
@@ -118,22 +120,16 @@ expr.addBinaryOp('#', (a, b) => a + b / 10);
 
 expr.addBinaryOp('~', 1, (a, b) => a * b);
 
-var tests = 0;
-var passed = 0;
+tape('sync', (t) => {
+  fixtures.forEach((o) => {
+    const val = expr.compile(o.expr)(context);
+    t.equal(val, o.expected, `${o.expr} (${val}) === ${o.expected}`);
+  });
 
-fixtures.forEach((o) => {
-  tests++;
-  try {
-    var val = expr.compile(o.expr)(context);
-  } catch (e) {
-    console.error(`Error: ${o.expr}, expected ${o.expected}`);
-    throw e;
-  }
-  assert.equal(val, o.expected, `Failed: ${o.expr} (${val}) === ${o.expected}`);
-  passed++;
+  t.end();
 });
 
-async function testAsync() {
+tape('async', async (t) => {
   const asyncContext = context;
   asyncContext.asyncFunc = async function(a, b) {
     return await a + b;
@@ -151,19 +147,10 @@ async function testAsync() {
     expr: 'promiseFunc(one, two)',
     expected: 3,
   });
-  for (let o of asyncFixtures) {
-    tests++;
-    try {
-      var val = await expr.compileAsync(o.expr)(asyncContext);
-    } catch (e) {
-      console.error(`Error: ${o.expr}, expected ${o.expected}`);
-      throw e;
-    }
-    assert.equal(val, o.expected, `Failed: ${o.expr} (${val}) === ${o.expected}`);
-    passed++;
-  }
-}
 
-testAsync().then(() => {
-  console.log('%s/%s tests passed.', passed, tests);
-})
+  for (let o of asyncFixtures) {
+    const val = await expr.compileAsync(o.expr)(asyncContext);
+    t.equal(val, o.expected, `${o.expr} (${val}) === ${o.expected}`);
+  }
+  t.end();
+});
