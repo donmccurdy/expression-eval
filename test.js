@@ -92,6 +92,10 @@ const fixtures = [
   {expr: '3#4', expected: 3.4  },
   {expr: '(1 # 2 # 3)', expected: 1.5 }, // Fails with undefined precedence, see issue #45
   {expr: '1 + 2 ~ 3', expected: 9 }, // ~ is * but with low precedence
+
+  // implicit optional chaining
+  {expr: 'foo.not.here', expected: undefined, options: {implicitOptionalChaining: true}},
+  {expr: 'foo.not.here', throws: /Cannot read property 'here' of undefined/}
 ];
 
 const context = {
@@ -122,8 +126,12 @@ expr.addBinaryOp('~', 1, (a, b) => a * b);
 
 tape('sync', (t) => {
   fixtures.forEach((o) => {
-    const val = expr.compile(o.expr)(context);
-    t.equal(val, o.expected, `${o.expr} (${val}) === ${o.expected}`);
+      if (o.throws) {
+        t.throws(() => expr.compile(o.expr)(context, o.options), o.throws, 'error was thrown');
+      } else {
+        const val = expr.compile(o.expr)(context, o.options);
+        t.equal(val, o.expected, `${o.expr} (${val}) === ${o.expected}`);
+      }
   });
 
   t.end();
@@ -149,8 +157,17 @@ tape('async', async (t) => {
   });
 
   for (let o of asyncFixtures) {
-    const val = await expr.compileAsync(o.expr)(asyncContext);
-    t.equal(val, o.expected, `${o.expr} (${val}) === ${o.expected}`);
+    if (o.throws) {
+      try {
+        await expr.compileAsync(o.expr)(context, o.options);
+        t.fail('asynchronous function did not throw');
+      } catch (e) {
+        t.match(e.message, o.throws, 'asynchronous error was thrown');
+      };
+    } else {
+      const val = await expr.compileAsync(o.expr)(asyncContext, o.options);
+      t.equal(val, o.expected, `${o.expr} (${val}) === ${o.expected}`);
+    }
   }
   t.end();
 });
