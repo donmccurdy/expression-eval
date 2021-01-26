@@ -89,7 +89,7 @@ function evaluate(_node: jsep.Expression, context: object, options: EvaluateOpti
   function evaluateMember(node: jsep.MemberExpression) {
     const object = evaluateNode(node.object);
     if (node.computed) {
-      return [object, object[evaluateNode(node.property)]];
+      return [object, options.implicitOptionalChaining ? object?.[evaluateNode(node.property)] : object[evaluateNode(node.property)]]
     } else {
       const name = (node.property as jsep.Identifier).name;
       return [object, options.implicitOptionalChaining ? object?.[name] : object[name]]
@@ -166,7 +166,7 @@ async function evalAsync(_node: jsep.Expression, context: object, options: Evalu
   async function evaluateMemberAsync(node: jsep.MemberExpression) {
     const object = await evalAsyncNode(node.object);
     if (node.computed) {
-      return [object, object[await evalAsyncNode(node.property)]];
+      return [object, options.implicitOptionalChaining ? object?.[await evalAsyncNode(node.property)] : object[await evalAsyncNode(node.property)]]
     } else {
       const name = (node.property as jsep.Identifier).name;
       return [object, options.implicitOptionalChaining ? object?.[name] : object[name]]

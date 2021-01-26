@@ -95,7 +95,9 @@ const fixtures = [
 
   // implicit optional chaining
   {expr: 'foo.not.here', expected: undefined, options: {implicitOptionalChaining: true}},
-  {expr: 'foo.not.here', throws: /Cannot read property 'here' of undefined/}
+  {expr: 'foo.not.here', throws: /Cannot read property 'here' of undefined/},
+  {expr: 'foo.not[0].here', expected: undefined, options: {implicitOptionalChaining: true}},
+  {expr: 'foo.not[0].here', throws: /Cannot read property '0' of undefined/}
 ];
 
 const context = {
