@@ -258,11 +258,11 @@ async function evalAsync(_node: jsep.Expression, context: object, options: Evalu
   return evalAsyncNode(_node);
 }
 
-function compile(expression: string | jsep.Expression): (context: object) => any {
+function compile(expression: string | jsep.Expression): (context: object, options: EvaluateOptions) => any {
   return evaluate.bind(null, jsep(expression));
 }
 
-function compileAsync(expression: string | jsep.Expression): (context: object) => Promise<any> {
+function compileAsync(expression: string | jsep.Expression): (context: object, options: EvaluateOptions) => Promise<any> {
   return evalAsync.bind(null, jsep(expression));
 }
 
