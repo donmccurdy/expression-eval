@@ -87,20 +87,30 @@ async function evaluateArrayAsync(list, context) {
 
 function evaluateMember(node: jsep.MemberExpression, context: object) {
   const object = evaluate(node.object, context);
+  let key: string;
   if (node.computed) {
-    return [object, object[evaluate(node.property, context)]];
+    key = evaluate(node.property, context);
   } else {
-    return [object, object[(node.property as jsep.Identifier).name]];
+    key = (node.property as jsep.Identifier).name;
   }
+  if (/^__proto__|prototype|constructor$/.test(key)) {
+    throw Error("prototype access detected");
+  }
+  return [object, object[key]];
 }
 
 async function evaluateMemberAsync(node: jsep.MemberExpression, context: object) {
   const object = await evalAsync(node.object, context);
+  let key: string;
   if (node.computed) {
-    return [object, object[await evalAsync(node.property, context)]];
+    key = await evalAsync(node.property, context);
   } else {
-    return [object, object[(node.property as jsep.Identifier).name]];
+    key = (node.property as jsep.Identifier).name;
   }
+  if (/^__proto__|prototype|constructor$/.test(key)) {
+    throw Error("prototype access detected");
+  }
+  return [object, object[key]];
 }
 
 function evaluate(_node: jsep.Expression, context: object) {
