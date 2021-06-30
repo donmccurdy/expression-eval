@@ -94,7 +94,7 @@ function evaluateMember(node: jsep.MemberExpression, context: object) {
     key = (node.property as jsep.Identifier).name;
   }
   if (/^__proto__|prototype|constructor$/.test(key)) {
-    throw Error("prototype access detected");
+    throw Error(`Access to member "${key}" disallowed.`);
   }
   return [object, object[key]];
 }
@@ -108,7 +108,7 @@ async function evaluateMemberAsync(node: jsep.MemberExpression, context: object)
     key = (node.property as jsep.Identifier).name;
   }
   if (/^__proto__|prototype|constructor$/.test(key)) {
-    throw Error("prototype access detected");
+    throw Error(`Access to member "${key}" disallowed.`);
   }
   return [object, object[key]];
 }
