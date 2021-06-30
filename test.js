@@ -154,3 +154,17 @@ tape('async', async (t) => {
   }
   t.end();
 });
+
+tape('errors', async (t) => {
+  const expectedMsg = /Access to member "\w+" disallowed/;
+  t.throws(() => expr.compile(`o.__proto__`)({o: {}}), expectedMsg, '.__proto__');
+  t.throws(() => expr.compile(`o.prototype`)({o: {}}), expectedMsg, '.prototype');
+  t.throws(() => expr.compile(`o.constructor`)({o: {}}), expectedMsg, '.constructor');
+  t.throws(() => expr.compile(`o['__proto__']`)({o: {}}), expectedMsg, '["__proto__"]');
+  t.throws(() => expr.compile(`o['prototype']`)({o: {}}), expectedMsg, '["prototype"]');
+  t.throws(() => expr.compile(`o['constructor']`)({o: {}}), expectedMsg, '["constructor"]');
+  t.throws(() => expr.compile(`o[p]`)({o: {}, p: '__proto__'}), expectedMsg, '[~__proto__]');
+  t.throws(() => expr.compile(`o[p]`)({o: {}, p: 'prototype'}), expectedMsg, '[~prototype]');
+  t.throws(() => expr.compile(`o[p]`)({o: {}, p: 'constructor'}), expectedMsg, '[~constructor]');
+  t.end();
+});
