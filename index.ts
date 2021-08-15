@@ -94,7 +94,11 @@ const evaluators: Record<string, evaluatorCallback> = {
     } else {
       fn = evaluate(node.callee, context);
     }
-    if (typeof fn !== 'function') { return undefined; }
+    if (typeof fn !== 'function') {
+      const n = node as any;
+      const fnName = node.callee && (n.callee.name || (n.callee.property && n.callee.property.name));
+      throw new Error(`'${fnName}' is not a function`);
+    }
     return fn.apply(caller, evaluateArray(node.arguments, context));
   },
 
@@ -153,7 +157,9 @@ const evaluatorsAsync: Record<string, evaluatorCallback> = {
       fn = await evalAsync(node.callee, context);
     }
     if (typeof fn !== 'function') {
-      return undefined;
+      const n = node as any;
+      const fnName = node.callee && (n.callee.name || (n.callee.property && n.callee.property.name));
+      throw new Error(`'${fnName}' is not a function`);
     }
     return await fn.apply(
       caller,

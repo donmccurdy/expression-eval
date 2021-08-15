@@ -193,5 +193,9 @@ tape('errors', async (t) => {
   t.throws(() => expr.compile(`o[p]`)({o: {}, p: '__proto__'}), expectedMsg, '[~__proto__]');
   t.throws(() => expr.compile(`o[p]`)({o: {}, p: 'prototype'}), expectedMsg, '[~prototype]');
   t.throws(() => expr.compile(`o[p]`)({o: {}, p: 'constructor'}), expectedMsg, '[~constructor]');
+
+  t.throws(() => expr.compile(`a.b`)({}), /Cannot read property 'b' of undefined/, 'b of undefined');
+  t.throws(() => expr.compile(`a()`)({}), /'a' is not a function/, 'invalid function');
+  t.throws(() => expr.compile(`a[b]()`)({a: 1, b: '2'}), /'b' is not a function/, 'invalid function');
   t.end();
 });
