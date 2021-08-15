@@ -86,20 +86,14 @@ const evaluators: Record<string, evaluatorCallback> = {
   'BinaryExpression': evaluateBinary,
 
   'CallExpression': function(node: jsep.CallExpression, context) {
-    let caller, fn, assign;
-    if (node.callee.type === 'MemberExpression') {
-      assign = evaluateMember(node.callee as jsep.MemberExpression, context);
-      caller = assign[0];
-      fn = assign[1];
-    } else {
-      fn = evaluate(node.callee, context);
-    }
-    if (typeof fn !== 'function') {
-      const n = node as any;
-      const fnName = node.callee && (n.callee.name || (n.callee.property && n.callee.property.name));
-      throw new Error(`'${fnName}' is not a function`);
-    }
+    const [fn, caller] = evaluateCall(node, context);
     return fn.apply(caller, evaluateArray(node.arguments, context));
+  },
+
+  'NewExpression': function(node: any, context) {
+    const [ctor] = evaluateCall(node, context);
+    const args = evaluateArray(node.arguments, context);
+    return construct(ctor, args, node);
   },
 
   'ArrowFunctionExpression': function(node: any, context) {
@@ -148,23 +142,17 @@ const evaluatorsAsync: Record<string, evaluatorCallback> = {
   'BinaryExpression': evaluateBinaryAsync,
 
   'CallExpression': async function(node: jsep.CallExpression, context) {
-    let caller, fn, assign;
-    if (node.callee.type === 'MemberExpression') {
-      assign = await evaluateMemberAsync(node.callee as jsep.MemberExpression, context);
-      caller = assign[0];
-      fn = assign[1];
-    } else {
-      fn = await evalAsync(node.callee, context);
-    }
-    if (typeof fn !== 'function') {
-      const n = node as any;
-      const fnName = node.callee && (n.callee.name || (n.callee.property && n.callee.property.name));
-      throw new Error(`'${fnName}' is not a function`);
-    }
+    const [fn, caller] = await evaluateCallAsync(node, context);
     return await fn.apply(
       caller,
       await evaluateArrayAsync(node.arguments, context)
     );
+  },
+
+  'NewExpression': async function(node: any, context) {
+    const [ctor] = await evaluateCallAsync(node, context);
+    const args = await evaluateArrayAsync(node.arguments, context);
+    return construct(ctor, args, node);
   },
 
   // ArrowFunctionExpression not supported as automatic async
@@ -262,6 +250,51 @@ async function evaluateBinaryAsync(node: jsep.BinaryExpression | jsep.LogicalExp
 
   return binops[node.operator](left, right);
 }
+
+function evaluateCall(node: jsep.CallExpression, context) {
+  let caller, fn, assign;
+  if (node.callee.type === 'MemberExpression') {
+    assign = evaluateMember(node.callee as jsep.MemberExpression, context);
+    caller = assign[0];
+    fn = assign[1];
+  } else {
+    fn = evaluate(node.callee, context);
+  }
+  if (typeof fn !== 'function') {
+    throw new Error(`'${nodeFunctionName(node)}' is not a function`);
+  }
+  return [fn, caller];
+}
+
+async function evaluateCallAsync(node: jsep.CallExpression, context) {
+  let caller, fn, assign;
+  if (node.callee.type === 'MemberExpression') {
+    assign = await evaluateMemberAsync(node.callee as jsep.MemberExpression, context);
+    caller = assign[0];
+    fn = assign[1];
+  } else {
+    fn = await evalAsync(node.callee, context);
+  }
+  if (typeof fn !== 'function') {
+    throw new Error(`'${nodeFunctionName(node)}' is not a function`);
+  }
+  return [fn, caller];
+}
+
+function construct(ctor, args, node) {
+  try {
+    return new (Function.prototype.bind.apply(ctor, [null].concat(args)))();
+  } catch (e) {
+    throw new Error(`${nodeFunctionName(node)} is not a constructor`);
+  }
+}
+
+function nodeFunctionName(node: any): string {
+  return node.callee
+    && (node.callee.name
+      || (node.callee.property && node.callee.property.name));
+}
+
 
 function evaluate(_node: jsep.Expression, context: Record<string, unknown>): unknown {
   const evaluator = evaluators[_node.type];

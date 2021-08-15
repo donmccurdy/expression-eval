@@ -101,6 +101,10 @@ const fixtures = [
   {expr: '3#4', expected: 3.4  },
   {expr: '(1 # 2 # 3)', expected: 1.5 }, // Fails with undefined precedence, see issue #45
   {expr: '1 + 2 ~ 3', expected: 9 }, // ~ is * but with low precedence
+
+  // new
+  {expr: '(new Date(2021, 8)).getFullYear()', expected: 2021},
+  {expr: '(new sub.sub2["Date"](2021, 8)).getFullYear()', expected: 2021},
 ];
 
 const context = {
@@ -115,7 +119,9 @@ const context = {
   list: [1,2,3,4,5],
   func: function(x) { return x + 1; },
   isArray: Array.isArray,
-  throw: () => { throw new Error('Should not be called.'); }
+  throw: () => { throw new Error('Should not be called.'); },
+  Date,
+  sub: { sub2: { Date } },
 };
 
 expr.addUnaryOp('@', (a) => {
@@ -196,6 +202,7 @@ tape('errors', async (t) => {
 
   t.throws(() => expr.compile(`a.b`)({}), /Cannot read property 'b' of undefined/, 'b of undefined');
   t.throws(() => expr.compile(`a()`)({}), /'a' is not a function/, 'invalid function');
-  t.throws(() => expr.compile(`a[b]()`)({a: 1, b: '2'}), /'b' is not a function/, 'invalid function');
+  t.throws(() => expr.compile(`a[b]()`)({a: 1, b: '2'}), /'b' is not a function/, 'invalid dynamic function');
+  t.throws(() => expr.compile(`new a()`)({a: () => 1}), /not a constructor/, 'invalid new');
   t.end();
 });
