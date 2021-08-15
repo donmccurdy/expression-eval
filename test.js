@@ -120,11 +120,17 @@ expr.addBinaryOp('#', (a, b) => a + b / 10);
 
 expr.addBinaryOp('~', 1, (a, b) => a * b);
 
+expr.addEvaluator('TestNodeType', (node, context) => node.test + context.string);
+expr.addEvaluatorAsync('TestNodeType', async (node, context) => await node.test + await context.string);
+
 tape('sync', (t) => {
   fixtures.forEach((o) => {
     const val = expr.compile(o.expr)(context);
     t.equal(val, o.expected, `${o.expr} (${val}) === ${o.expected}`);
   });
+
+  const val = expr.eval.bind(null, { type: 'TestNodeType', test: 'testing ' })(context);
+  t.equal(val, 'testing string');
 
   t.end();
 });
@@ -152,6 +158,10 @@ tape('async', async (t) => {
     const val = await expr.compileAsync(o.expr)(asyncContext);
     t.equal(val, o.expected, `${o.expr} (${val}) === ${o.expected}`);
   }
+
+  const val = await expr.evalAsync.bind(null, { type: 'TestNodeType', test: 'testing ' })(context);
+  t.equal(val, 'testing string');
+
   t.end();
 });
 

@@ -61,7 +61,23 @@ const unops = {
   '!': function (a) { return !a; },
 };
 
-const evaluators: Record<string, (node: AnyExpression, context: Record<string, unknown>) => unknown> = {
+declare type operand = number | string;
+declare type unaryCallback = (a: operand) => operand;
+declare type binaryCallback = (a: operand, b: operand) => operand;
+declare type evaluatorCallback = (node: AnyExpression, context: Record<string, unknown>) => unknown;
+
+type AnyExpression = jsep.ArrayExpression
+  | jsep.BinaryExpression
+  | jsep.MemberExpression
+  | jsep.CallExpression
+  | jsep.ConditionalExpression
+  | jsep.Identifier
+  | jsep.Literal
+  | jsep.LogicalExpression
+  | jsep.ThisExpression
+  | jsep.UnaryExpression;
+
+const evaluators: Record<string, evaluatorCallback> = {
   'ArrayExpression': function(node: jsep.ArrayExpression, context) {
     return evaluateArray(node.elements, context);
   },
@@ -119,7 +135,7 @@ const evaluators: Record<string, (node: AnyExpression, context: Record<string, u
   }
 };
 
-const evaluatorsAsync: Record<string, (node: AnyExpression, context: Record<string, unknown>) => unknown> = {
+const evaluatorsAsync: Record<string, evaluatorCallback> = {
   'ArrayExpression': async function(node: jsep.ArrayExpression, context) {
     return await evaluateArrayAsync(node.elements, context);
   },
@@ -198,21 +214,6 @@ const evaluatorsAsync: Record<string, (node: AnyExpression, context: Record<stri
   },
 };
 
-declare type operand = number | string;
-declare type unaryCallback = (a: operand) => operand;
-declare type binaryCallback = (a: operand, b: operand) => operand;
-
-type AnyExpression = jsep.ArrayExpression
-  | jsep.BinaryExpression
-  | jsep.MemberExpression
-  | jsep.CallExpression
-  | jsep.ConditionalExpression
-  | jsep.Identifier
-  | jsep.Literal
-  | jsep.LogicalExpression
-  | jsep.ThisExpression
-  | jsep.UnaryExpression;
-
 function evaluateArray(list, context) {
   return list.map(function (v) { return evaluate(v, context); });
 }
@@ -250,21 +251,17 @@ async function evaluateMemberAsync(node: jsep.MemberExpression, context: Record<
   return [object, object[key]];
 }
 
-function evaluate(_node: jsep.Expression, context: Record<string, unknown>) {
-
-  const node = _node as AnyExpression;
-
-  return node.type in evaluators
-    ? evaluators[node.type](node, context)
+function evaluate(_node: jsep.Expression, context: Record<string, unknown>): unknown {
+  const evaluator = evaluators[_node.type];
+  return evaluator
+    ? evaluator(_node as AnyExpression, context)
     : undefined;
 }
 
 async function evalAsync(_node: jsep.Expression, context: Record<string, unknown>) {
-
-  const node = _node as AnyExpression;
-
-  return node.type in evaluatorsAsync
-    ? evaluatorsAsync[node.type](node, context)
+  const evaluator = evaluatorsAsync[_node.type];
+  return evaluator
+    ? evaluator(_node as AnyExpression, context)
     : undefined;
 }
 
@@ -293,6 +290,14 @@ function addBinaryOp(operator: string, precedence_or_fn: number | binaryCallback
   }
 }
 
+function addEvaluator(nodeType: string, evaluator: evaluatorCallback): void {
+  evaluators[nodeType] = evaluator;
+}
+
+function addEvaluatorAsync(nodeType: string, evaluator: evaluatorCallback): void {
+  evaluatorsAsync[nodeType] = evaluator;
+}
+
 export {
   jsep as parse,
   evaluate as eval,
@@ -300,5 +305,7 @@ export {
   compile,
   compileAsync,
   addUnaryOp,
-  addBinaryOp
+  addBinaryOp,
+  addEvaluator,
+  addEvaluatorAsync,
 };
