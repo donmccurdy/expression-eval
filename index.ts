@@ -82,9 +82,8 @@ const evaluators: Record<string, evaluatorCallback> = {
     return evaluateArray(node.elements, context);
   },
 
-  'BinaryExpression': function(node: jsep.BinaryExpression, context) {
-    return binops[node.operator](evaluate(node.left, context), evaluate(node.right, context));
-  },
+  'LogicalExpression': evaluateBinary,
+  'BinaryExpression': evaluateBinary,
 
   'CallExpression': function(node: jsep.CallExpression, context) {
     let caller, fn, assign;
@@ -113,15 +112,6 @@ const evaluators: Record<string, evaluatorCallback> = {
     return node.value;
   },
 
-  'LogicalExpression': function(node: jsep.LogicalExpression, context) {
-    if (node.operator === '||') {
-      return evaluate(node.left, context) || evaluate(node.right, context);
-    } else if (node.operator === '&&') {
-      return evaluate(node.left, context) && evaluate(node.right, context);
-    }
-    return binops[node.operator](evaluate(node.left, context), evaluate(node.right, context));
-  },
-
   'MemberExpression': function(node: jsep.MemberExpression, context) {
     return evaluateMember(node, context)[1];
   },
@@ -140,13 +130,8 @@ const evaluatorsAsync: Record<string, evaluatorCallback> = {
     return await evaluateArrayAsync(node.elements, context);
   },
 
-  'BinaryExpression': async function(node: jsep.BinaryExpression, context) {
-    const [left, right] = await Promise.all([
-      evalAsync(node.left, context),
-      evalAsync(node.right, context)
-    ]);
-    return binops[node.operator](left, right);
-  },
+  'LogicalExpression': evaluateBinaryAsync,
+  'BinaryExpression': evaluateBinaryAsync,
 
   'CallExpression': async function(node: jsep.CallExpression, context) {
     let caller, fn, assign;
@@ -178,27 +163,6 @@ const evaluatorsAsync: Record<string, evaluatorCallback> = {
 
   'Literal': async function(node: jsep.Literal) {
     return node.value;
-  },
-
-  'LogicalExpression': async function(node: jsep.LogicalExpression, context) {
-    if (node.operator === '||') {
-      return (
-        (await evalAsync(node.left, context)) ||
-        (await evalAsync(node.right, context))
-      );
-    } else if (node.operator === '&&') {
-      return (
-        (await evalAsync(node.left, context)) &&
-        (await evalAsync(node.right, context))
-      );
-    }
-
-    const [left, right] = await Promise.all([
-      evalAsync(node.left, context),
-      evalAsync(node.right, context)
-    ]);
-
-    return binops[node.operator](left, right);
   },
 
   'MemberExpression': async function(node: jsep.MemberExpression, context) {
@@ -249,6 +213,36 @@ async function evaluateMemberAsync(node: jsep.MemberExpression, context: Record<
     throw Error(`Access to member "${key}" disallowed.`);
   }
   return [object, object[key]];
+}
+
+function evaluateBinary(node: jsep.BinaryExpression | jsep.LogicalExpression, context): unknown {
+  if (node.operator === '||') {
+    return evaluate(node.left, context) || evaluate(node.right, context);
+  } else if (node.operator === '&&') {
+    return evaluate(node.left, context) && evaluate(node.right, context);
+  }
+  return binops[node.operator](evaluate(node.left, context), evaluate(node.right, context));
+}
+
+async function evaluateBinaryAsync(node: jsep.BinaryExpression | jsep.LogicalExpression, context) {
+  if (node.operator === '||') {
+    return (
+      (await evalAsync(node.left, context)) ||
+      (await evalAsync(node.right, context))
+    );
+  } else if (node.operator === '&&') {
+    return (
+      (await evalAsync(node.left, context)) &&
+      (await evalAsync(node.right, context))
+    );
+  }
+
+  const [left, right] = await Promise.all([
+    evalAsync(node.left, context),
+    evalAsync(node.right, context)
+  ]);
+
+  return binops[node.operator](left, right);
 }
 
 function evaluate(_node: jsep.Expression, context: Record<string, unknown>): unknown {
