@@ -37,6 +37,7 @@
   "devDependencies": {
     "@types/tape": "^4.13.0",
     "@typescript-eslint/eslint-plugin": "^4.12.0",
+    "@typescript-eslint/parser": "^4.29.1",
     "eslint": "^7.17.0",
     "microbundle": "^0.13.0",
     "source-map-support": "^0.5.19",
