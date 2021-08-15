@@ -2,6 +2,15 @@ require('source-map-support').install();
 
 const expr = require('./dist/expression-eval.js');
 const tape = require('tape');
+expr.parse.plugins.register(require('@jsep/arrow'));
+expr.parse.plugins.register(require('@jsep/assignment'));
+expr.parse.plugins.register(require('@jsep/assignment'));
+expr.parse.plugins.register(require('@jsep/new'));
+expr.parse.plugins.register(require('@jsep/object'));
+expr.parse.plugins.register(require('@jsep/regex'));
+expr.parse.plugins.register(require('@jsep/spread'));
+expr.parse.plugins.register(require('@jsep/template'));
+expr.parse.plugins.register(require('@jsep/ternary'));
 
 const fixtures = [
 
@@ -124,7 +133,15 @@ expr.addEvaluator('TestNodeType', (node, context) => node.test + context.string)
 expr.addEvaluatorAsync('TestNodeType', async (node, context) => await node.test + await context.string);
 
 tape('sync', (t) => {
-  fixtures.forEach((o) => {
+  const syncFixtures = [
+    // Arrow Functions
+    {expr: '[1,2].find(v => v === 2)', expected: 2 },
+    {expr: 'list.reduce((sum, v) => sum + v, 0)', expected: 15 },
+    {expr: 'list.find(() => false)', expected: undefined},
+    {expr: 'list.findIndex(v => v === 3)', expected: 2},
+  ];
+
+  [...fixtures, ...syncFixtures].forEach((o) => {
     const val = expr.compile(o.expr)(context);
     t.equal(val, o.expected, `${o.expr} (${val}) === ${o.expected}`);
   });

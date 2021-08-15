@@ -98,6 +98,16 @@ const evaluators: Record<string, evaluatorCallback> = {
     return fn.apply(caller, evaluateArray(node.arguments, context));
   },
 
+  'ArrowFunctionExpression': function(node: any, context) {
+    const arrowContext = { ...context };
+    return (...arrowArgs) => {
+      (node.params || []).forEach((n, i) => {
+        arrowContext[n.name] = arrowArgs[i];
+      });
+      return evaluate(node.body, arrowContext);
+    }
+  },
+
   'ConditionalExpression': function(node: jsep.ConditionalExpression, context) {
     return evaluate(node.test, context)
       ? evaluate(node.consequent, context)
@@ -150,6 +160,8 @@ const evaluatorsAsync: Record<string, evaluatorCallback> = {
       await evaluateArrayAsync(node.arguments, context)
     );
   },
+
+  // ArrowFunctionExpression not supported as automatic async
 
   'ConditionalExpression': async function(node: jsep.ConditionalExpression, context) {
     return (await evalAsync(node.test, context))
