@@ -130,7 +130,27 @@ const evaluators: Record<string, evaluatorCallback> = {
 
   'UnaryExpression': function(node: jsep.UnaryExpression, context) {
     return unops[node.operator](evaluate(node.argument, context));
-  }
+  },
+
+  'ObjectExpression': function(node: any, context) {
+    const obj = {};
+    node.properties.forEach((prop) => {
+      if (prop.type === 'SpreadElement') {
+        Object.assign(obj, evaluate(prop.argument, context));
+      } else {
+        const key: string = prop.key.type === 'Identifier'
+          ? prop.key.name
+          : evaluate(prop.key, context);
+        const value = evaluate(prop.shorthand ? prop.key : prop.value, context);
+        obj[key] = value;
+      }
+    });
+    return obj;
+  },
+
+  'SpreadElement': function(node: any, context) {
+    return evaluate(node.argument, context);
+  },
 };
 
 const evaluatorsAsync: Record<string, evaluatorCallback> = {
@@ -182,15 +202,48 @@ const evaluatorsAsync: Record<string, evaluatorCallback> = {
   'UnaryExpression': async function(node: jsep.UnaryExpression, context) {
     return unops[node.operator](await evalAsync(node.argument, context));
   },
+
+  'ObjectExpression': async function(node: any, context) {
+    const obj = {};
+    await Promise.all(node.properties.map(async (prop) => {
+      if (prop.type === 'SpreadElement') {
+        Object.assign(obj, evaluate(prop.argument, context));
+      } else {
+        const key: string = prop.key.type === 'Identifier'
+          ? prop.key.name
+          : await evalAsync(prop.key, context);
+        const value = await evalAsync(prop.shorthand? prop.key : prop.value, context);
+        obj[key] = value;
+      }
+    }));
+    return obj;
+  },
+
+  'SpreadElement': function(node: any, context) {
+    return evalAsync(node.argument, context);
+  },
 };
 
 function evaluateArray(list, context) {
-  return list.map(function (v) { return evaluate(v, context); });
+  return list.reduce((arr, node) => {
+    const val: any = evaluate(node, context);
+    if (node.type === 'SpreadElement') {
+      return [...arr, ...val];
+    }
+    arr.push(val);
+    return arr;
+  }, []);
 }
 
 async function evaluateArrayAsync(list, context) {
-  const res = await Promise.all(list.map((v) => evalAsync(v, context)));
-  return res;
+  const res: any[] = await Promise.all(list.map((v) => evalAsync(v, context)));
+  return res.reduce((arr, v, i) => {
+    if (list[i].type === 'SpreadElement') {
+      return [...arr, ...v];
+    }
+    arr.push(v);
+    return arr;
+  }, []);
 }
 
 function evaluateMember(node: jsep.MemberExpression, context: Record<string, unknown>) {

@@ -105,6 +105,13 @@ const fixtures = [
   // new
   {expr: '(new Date(2021, 8)).getFullYear()', expected: 2021},
   {expr: '(new sub.sub2["Date"](2021, 8)).getFullYear()', expected: 2021},
+  {expr: 'new Date(2021, 8)', expected: new Date(2021, 8)},
+
+  // object, spread
+  {expr: '{ a: "a", one, [foo.bar]: 2 }', expected: { a: 'a', one: 1, baz: 2 } },
+  {expr: '{ a: "a", ...numMap }', expected: { a: 'a', 10: 'ten', 3: 'three' } },
+  {expr: '[7, ...list]', expected: [7,1,2,3,4,5] },
+  {expr: 'func(1, ...list)', expected: 17 },
 ];
 
 const context = {
@@ -117,7 +124,7 @@ const context = {
   foo: {bar: 'baz', baz: 'wow', func: function(x) { return this[x]; }},
   numMap: {10: 'ten', 3: 'three'},
   list: [1,2,3,4,5],
-  func: function(x) { return x + 1; },
+  func: function(...x) { return x.reduce((sum, v) => sum + v, 1); },
   isArray: Array.isArray,
   throw: () => { throw new Error('Should not be called.'); },
   Date,
@@ -149,7 +156,8 @@ tape('sync', (t) => {
 
   [...fixtures, ...syncFixtures].forEach((o) => {
     const val = expr.compile(o.expr)(context);
-    t.equal(val, o.expected, `${o.expr} (${val}) === ${o.expected}`);
+    const compare = t[typeof o.expected === 'object' ? 'deepEqual' : 'equal'];
+    compare(val, o.expected, `${o.expr} (${val}) === ${o.expected}`);
   });
 
   const val = expr.eval.bind(null, { type: 'TestNodeType', test: 'testing ' })(context);
@@ -179,7 +187,8 @@ tape('async', async (t) => {
 
   for (let o of asyncFixtures) {
     const val = await expr.compileAsync(o.expr)(asyncContext);
-    t.equal(val, o.expected, `${o.expr} (${val}) === ${o.expected}`);
+    const compare = t[typeof o.expected === 'object' ? 'deepEqual' : 'equal'];
+    compare(val, o.expected, `${o.expr} (${val}) === ${o.expected}`);
   }
 
   const val = await expr.evalAsync.bind(null, { type: 'TestNodeType', test: 'testing ' })(context);
