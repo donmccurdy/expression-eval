@@ -25,9 +25,9 @@ Import:
 // ES6
 import { parse, eval } from 'expression-eval';
 // CommonJS
-const { parse, eval } = require('expression-eval');
+const { parse, evaluate } = require('expression-eval');
 // UMD / standalone script
-const { parse, eval } = window.expressionEval;
+const { parse, evaluate } = window.expressionEval;
 ```
 
 ## API
@@ -76,6 +76,21 @@ fn({foo: {bar: 'baz'}}); // 'baz10'
 ```
 
 Alternatively, use `compileAsync` for asynchronous compilation.
+
+### Extending evaluation
+
+The base evaluation supports the default jsep syntax,
+as well as its plugin node types. To modify the
+evaluation, use any of the modification methods:
+- addUnaryOp(operator, evaluator).
+Will add the operator to jsep, and the function
+to evaluate the operator
+- addBinaryOp(operator, precedence | evaluator, evaluator).
+Will add the operator to jsep at the given precedence
+(if provided), and the function to evaluate the operator
+- addEvaluator/addEvaluatorAsync(nodeType, evaluator).
+Will add the evaluator function to the map of functions
+for each node type.
 
 ## Security
 

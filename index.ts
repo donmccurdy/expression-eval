@@ -535,7 +535,9 @@ function addEvaluatorAsync(nodeType: string, evaluator: evaluatorCallback): void
 }
 
 export {
+  jsep,
   jsep as parse,
+  evaluate,
   evaluate as eval,
   evalAsync,
   compile,
