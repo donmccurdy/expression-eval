@@ -108,19 +108,6 @@ const evaluators: Record<string, evaluatorCallback> = {
     return fn.apply(caller, evaluateArray(node.arguments, context));
   },
 
-  'NewExpression': function(node: NewExpression, context) {
-    const [ctor] = evaluateCall(node.callee, context);
-    const args = evaluateArray(node.arguments, context);
-    return construct(ctor, args, node);
-  },
-
-  'ArrowFunctionExpression': function(node: ArrowExpression, context) {
-    return (...arrowArgs) => {
-      const arrowContext = evalArrowContext(node, context, arrowArgs);
-      return evaluate(node.body, arrowContext);
-    };
-  },
-
   'ConditionalExpression': function(node: jsep.ConditionalExpression, context) {
     return evaluate(node.test, context)
       ? evaluate(node.consequent, context)
@@ -147,43 +134,17 @@ const evaluators: Record<string, evaluatorCallback> = {
     return unops[node.operator](evaluate(node.argument, context));
   },
 
-  'ObjectExpression': function(node: ObjectExpression, context) {
-    const obj = {};
-    node.properties.forEach((prop: Property | SpreadElement) => {
-      if (prop.type === 'SpreadElement') {
-        Object.assign(obj, evaluate(prop.argument, context));
-      } else if (prop.type === 'Property') {
-        const key: string = prop.key.type === 'Identifier'
-          ? (<jsep.Identifier>prop.key).name
-          : evaluate(prop.key, context).toString()
-        obj[key] = evaluate(prop.shorthand ? prop.key : prop.value, context);
-      }
-    });
-    return obj;
-  },
+  'ArrowFunctionExpression': evalArrowFunctionExpression,
 
-  'SpreadElement': function(node: SpreadElement, context) {
-    return evaluate(node.argument, context);
-  },
+  'NewExpression': evalNewExpression,
 
-  'TaggedTemplateExpression': function(node: TaggedTemplateExpression, context) {
-    const [fn, caller] = evaluateCall(node.tag, context);
-    const args = [
-      node.quasi.quasis.map(q => q.value.cooked),
-      ...evaluateArray(node.quasi.expressions, context),
-    ];
-    return fn.apply(caller, args);
-  },
+  'ObjectExpression': evalObjectExpression,
 
-  'TemplateLiteral': function(node: TemplateLiteral, context) {
-    return node.quasis.reduce((str, q, i) => {
-      str += q.value.cooked;
-      if (!q.tail) {
-        str += evaluate(node.expressions[i], context);
-      }
-      return str;
-    }, '');
-  },
+  'SpreadElement': evalSpreadElement,
+
+  'TaggedTemplateExpression': evalTaggedTemplateExpression,
+
+  'TemplateLiteral': evalTemplateLiteral
 };
 
 const evaluatorsAsync: Record<string, evaluatorCallback> = {
@@ -201,14 +162,6 @@ const evaluatorsAsync: Record<string, evaluatorCallback> = {
       await evaluateArrayAsync(node.arguments, context)
     );
   },
-
-  'NewExpression': async function(node: NewExpression, context) {
-    const [ctor] = await evaluateCallAsync(node.callee, context);
-    const args = await evaluateArrayAsync(node.arguments, context);
-    return construct(ctor, args, node);
-  },
-
-  // ArrowFunctionExpression not supported as automatic async
 
   'ConditionalExpression': async function(node: jsep.ConditionalExpression, context) {
     return (await evalAsync(node.test, context))
@@ -236,44 +189,15 @@ const evaluatorsAsync: Record<string, evaluatorCallback> = {
     return unops[node.operator](await evalAsync(node.argument, context));
   },
 
-  'ObjectExpression': async function(node: ObjectExpression, context) {
-    const obj = {};
-    await Promise.all(node.properties.map(async (prop: Property | SpreadElement) => {
-      if (prop.type === 'SpreadElement') {
-        Object.assign(obj, evaluate(prop.argument, context));
-      } else {
-        const key: string = prop.key.type === 'Identifier'
-          ? (<jsep.Identifier>prop.key).name
-          : (await evalAsync(prop.key, context)).toString();
-        obj[key] = await evalAsync(prop.shorthand? prop.key : prop.value, context);
-      }
-    }));
-    return obj;
-  },
+  'NewExpression': evalNewExpressionAsync,
 
-  'SpreadElement': function(node: SpreadElement, context) {
-    return evalAsync(node.argument, context);
-  },
+  'ObjectExpression': evalObjectExpressionAsync,
 
-  'TaggedTemplateExpression': async function(node: TaggedTemplateExpression, context) {
-    const [fn, caller] = await evaluateCallAsync(node.tag, context);
-    const args = [
-      node.quasi.quasis.map(q => q.value.cooked),
-      ...(await evaluateArrayAsync(node.quasi.expressions, context)),
-    ];
-    return await fn.apply(caller, args);
-  },
+  'SpreadElement': evalSpreadElementAsync,
 
-  'TemplateLiteral': async function(node: TemplateLiteral, context) {
-    const expressions = await evaluateArrayAsync(node.expressions, context);
-    return node.quasis.reduce((str, q, i) => {
-      str += q.value.cooked;
-      if (!q.tail) {
-        str += expressions[i];
-      }
-      return str;
-    }, '');
-  },
+  'TaggedTemplateExpression': evalTaggedTemplateExpressionAsync,
+
+  'TemplateLiteral': evalTemplateLiteralAsync,
 };
 
 function evaluateArray(list: jsep.Expression[], context: Context): unknown[] {
@@ -386,6 +310,13 @@ async function evaluateCallAsync(callee: jsep.Expression, context) {
   return [fn, caller];
 }
 
+function evalArrowFunctionExpression(node: ArrowExpression, context: Context) {
+  return (...arrowArgs) => {
+    const arrowContext = evalArrowContext(node, context, arrowArgs);
+    return evaluate(node.body, arrowContext);
+  };
+}
+
 function evalArrowContext(node, context, arrowArgs): Context {
   const arrowContext = { ...context };
 
@@ -463,6 +394,96 @@ function evalArrowContext(node, context, arrowArgs): Context {
     }
   });
   return arrowContext;
+}
+// ArrowFunctionExpression not supported as automatic async
+
+function evalNewExpression(node: NewExpression, context: Context) {
+  const [ctor] = evaluateCall(node.callee, context);
+  const args = evaluateArray(node.arguments, context);
+  return construct(ctor, args, node);
+}
+
+async function evalNewExpressionAsync(node: NewExpression, context: Context) {
+  const [ctor] = await evaluateCallAsync(node.callee, context);
+  const args = await evaluateArrayAsync(node.arguments, context);
+  return construct(ctor, args, node);
+}
+
+function evalObjectExpression(node: ObjectExpression, context: Context) {
+  const obj = {};
+  node.properties.forEach((prop: Property | SpreadElement) => {
+    if (prop.type === 'SpreadElement') {
+      Object.assign(obj, evaluate(prop.argument, context));
+    } else if (prop.type === 'Property') {
+      const key: string = prop.key.type === 'Identifier'
+        ? (<jsep.Identifier>prop.key).name
+        : evaluate(prop.key, context).toString()
+      obj[key] = evaluate(prop.shorthand ? prop.key : prop.value, context);
+    }
+  });
+  return obj;
+}
+
+async function evalObjectExpressionAsync(node: ObjectExpression, context: Context) {
+  const obj = {};
+  await Promise.all(node.properties.map(async (prop: Property | SpreadElement) => {
+    if (prop.type === 'SpreadElement') {
+      Object.assign(obj, evaluate(prop.argument, context));
+    } else {
+      const key: string = prop.key.type === 'Identifier'
+        ? (<jsep.Identifier>prop.key).name
+        : (await evalAsync(prop.key, context)).toString();
+      obj[key] = await evalAsync(prop.shorthand? prop.key : prop.value, context);
+    }
+  }));
+  return obj;
+}
+
+function evalSpreadElement(node: SpreadElement, context: Context) {
+  return evaluate(node.argument, context);
+}
+
+async function evalSpreadElementAsync(node: SpreadElement, context: Context) {
+  return evalAsync(node.argument, context);
+}
+
+function evalTaggedTemplateExpression(node: TaggedTemplateExpression, context: Context) {
+  const [fn, caller] = evaluateCall(node.tag, context);
+  const args = [
+    node.quasi.quasis.map(q => q.value.cooked),
+    ...evaluateArray(node.quasi.expressions, context),
+  ];
+  return fn.apply(caller, args);
+}
+
+async function evalTaggedTemplateExpressionAsync(node: TaggedTemplateExpression, context: Context) {
+  const [fn, caller] = await evaluateCallAsync(node.tag, context);
+  const args = [
+    node.quasi.quasis.map(q => q.value.cooked),
+    ...(await evaluateArrayAsync(node.quasi.expressions, context)),
+  ];
+  return await fn.apply(caller, args);
+}
+
+function evalTemplateLiteral(node: TemplateLiteral, context: Context) {
+  return node.quasis.reduce((str, q, i) => {
+    str += q.value.cooked;
+    if (!q.tail) {
+      str += evaluate(node.expressions[i], context);
+    }
+    return str;
+  }, '');
+}
+
+async function evalTemplateLiteralAsync(node: TemplateLiteral, context: Context) {
+  const expressions = await evaluateArrayAsync(node.expressions, context);
+  return node.quasis.reduce((str, q, i) => {
+    str += q.value.cooked;
+    if (!q.tail) {
+      str += expressions[i];
+    }
+    return str;
+  }, '');
 }
 
 function construct(ctor, args, node) {
