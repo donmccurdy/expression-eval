@@ -86,12 +86,12 @@ const evaluators: Record<string, evaluatorCallback> = {
   'BinaryExpression': evaluateBinary,
 
   'CallExpression': function(node: jsep.CallExpression, context) {
-    const [fn, caller] = evaluateCall(node, context);
+    const [fn, caller] = evaluateCall(node.callee, context);
     return fn.apply(caller, evaluateArray(node.arguments, context));
   },
 
   'NewExpression': function(node: any, context) {
-    const [ctor] = evaluateCall(node, context);
+    const [ctor] = evaluateCall(node.callee, context);
     const args = evaluateArray(node.arguments, context);
     return construct(ctor, args, node);
   },
@@ -151,6 +151,25 @@ const evaluators: Record<string, evaluatorCallback> = {
   'SpreadElement': function(node: any, context) {
     return evaluate(node.argument, context);
   },
+
+  'TaggedTemplateExpression': function(node: any, context) {
+    const [fn, caller] = evaluateCall(node.tag, context);
+    const args = [
+      node.quasi.quasis.map(q => q.value.cooked),
+      ...evaluateArray(node.quasi.expressions, context),
+    ];
+    return fn.apply(caller, args);
+  },
+
+  'TemplateLiteral': function(node: any, context) {
+    return node.quasis.reduce((str, q, i) => {
+      str += q.value.cooked;
+      if (!q.tail) {
+        str += evaluate(node.expressions[i], context);
+      }
+      return str;
+    }, '');
+  },
 };
 
 const evaluatorsAsync: Record<string, evaluatorCallback> = {
@@ -162,7 +181,7 @@ const evaluatorsAsync: Record<string, evaluatorCallback> = {
   'BinaryExpression': evaluateBinaryAsync,
 
   'CallExpression': async function(node: jsep.CallExpression, context) {
-    const [fn, caller] = await evaluateCallAsync(node, context);
+    const [fn, caller] = await evaluateCallAsync(node.callee, context);
     return await fn.apply(
       caller,
       await evaluateArrayAsync(node.arguments, context)
@@ -170,7 +189,7 @@ const evaluatorsAsync: Record<string, evaluatorCallback> = {
   },
 
   'NewExpression': async function(node: any, context) {
-    const [ctor] = await evaluateCallAsync(node, context);
+    const [ctor] = await evaluateCallAsync(node.callee, context);
     const args = await evaluateArrayAsync(node.arguments, context);
     return construct(ctor, args, node);
   },
@@ -221,6 +240,26 @@ const evaluatorsAsync: Record<string, evaluatorCallback> = {
 
   'SpreadElement': function(node: any, context) {
     return evalAsync(node.argument, context);
+  },
+
+  'TaggedTemplateExpression': async function(node: any, context) {
+    const [fn, caller] = await evaluateCallAsync(node.tag, context);
+    const args = [
+      node.quasi.quasis.map(q => q.value.cooked),
+      ...(await evaluateArrayAsync(node.quasi.expressions, context)),
+    ];
+    return await fn.apply(caller, args);
+  },
+
+  'TemplateLiteral': async function(node: any, context) {
+    const expressions = await evaluateArrayAsync(node.expressions, context);
+    return node.quasis.reduce((str, q, i) => {
+      str += q.value.cooked;
+      if (!q.tail) {
+        str += expressions[i];
+      }
+      return str;
+    }, '');
   },
 };
 
@@ -304,32 +343,32 @@ async function evaluateBinaryAsync(node: jsep.BinaryExpression | jsep.LogicalExp
   return binops[node.operator](left, right);
 }
 
-function evaluateCall(node: jsep.CallExpression, context) {
+function evaluateCall(callee: jsep.Expression, context) {
   let caller, fn, assign;
-  if (node.callee.type === 'MemberExpression') {
-    assign = evaluateMember(node.callee as jsep.MemberExpression, context);
+  if (callee.type === 'MemberExpression') {
+    assign = evaluateMember(callee as jsep.MemberExpression, context);
     caller = assign[0];
     fn = assign[1];
   } else {
-    fn = evaluate(node.callee, context);
+    fn = evaluate(callee, context);
   }
   if (typeof fn !== 'function') {
-    throw new Error(`'${nodeFunctionName(node)}' is not a function`);
+    throw new Error(`'${nodeFunctionName(callee)}' is not a function`);
   }
   return [fn, caller];
 }
 
-async function evaluateCallAsync(node: jsep.CallExpression, context) {
+async function evaluateCallAsync(callee: jsep.Expression, context) {
   let caller, fn, assign;
-  if (node.callee.type === 'MemberExpression') {
-    assign = await evaluateMemberAsync(node.callee as jsep.MemberExpression, context);
+  if (callee.type === 'MemberExpression') {
+    assign = await evaluateMemberAsync(callee as jsep.MemberExpression, context);
     caller = assign[0];
     fn = assign[1];
   } else {
-    fn = await evalAsync(node.callee, context);
+    fn = await evalAsync(callee, context);
   }
   if (typeof fn !== 'function') {
-    throw new Error(`'${nodeFunctionName(node)}' is not a function`);
+    throw new Error(`'${nodeFunctionName(callee)}' is not a function`);
   }
   return [fn, caller];
 }
@@ -338,14 +377,14 @@ function construct(ctor, args, node) {
   try {
     return new (Function.prototype.bind.apply(ctor, [null].concat(args)))();
   } catch (e) {
-    throw new Error(`${nodeFunctionName(node)} is not a constructor`);
+    throw new Error(`${nodeFunctionName(node.callee)} is not a constructor`);
   }
 }
 
-function nodeFunctionName(node: any): string {
-  return node.callee
-    && (node.callee.name
-      || (node.callee.property && node.callee.property.name));
+function nodeFunctionName(callee: any): string {
+  return callee
+    && (callee.name
+      || (callee.property && callee.property.name));
 }
 
 

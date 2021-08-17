@@ -3,8 +3,7 @@ require('source-map-support').install();
 const expr = require('./dist/expression-eval.js');
 const tape = require('tape');
 expr.parse.plugins.register(require('@jsep/arrow'));
-expr.parse.plugins.register(require('@jsep/assignment'));
-expr.parse.plugins.register(require('@jsep/assignment'));
+expr.parse.plugins.register(require('@jsep/async-await'));
 expr.parse.plugins.register(require('@jsep/new'));
 expr.parse.plugins.register(require('@jsep/object'));
 expr.parse.plugins.register(require('@jsep/regex'));
@@ -97,21 +96,30 @@ const fixtures = [
   {expr: 'this.three', expected: 3 },
 
   // custom operators
-  {expr: '@2', expected: 'two' },
-  {expr: '3#4', expected: 3.4  },
-  {expr: '(1 # 2 # 3)', expected: 1.5 }, // Fails with undefined precedence, see issue #45
-  {expr: '1 + 2 ~ 3', expected: 9 }, // ~ is * but with low precedence
+  {expr: '@2',          expected: 'two' },
+  {expr: '3#4',         expected: 3.4   },
+  {expr: '(1 # 2 # 3)', expected: 1.5   }, // Fails with undefined precedence, see issue #45
+  {expr: '1 + 2 ~ 3',   expected: 9     }, // ~ is * but with low precedence
 
   // new
-  {expr: '(new Date(2021, 8)).getFullYear()', expected: 2021},
-  {expr: '(new sub.sub2["Date"](2021, 8)).getFullYear()', expected: 2021},
-  {expr: 'new Date(2021, 8)', expected: new Date(2021, 8)},
+  {expr: '(new Date(2021, 8)).getFullYear()',             expected: 2021                          },
+  {expr: '(new sub.sub2["Date"](2021, 8)).getFullYear()', expected: 2021                          },
+  {expr: 'new Date(2021, 8)',                             expected: new Date(2021, 8) },
 
   // object, spread
-  {expr: '{ a: "a", one, [foo.bar]: 2 }', expected: { a: 'a', one: 1, baz: 2 } },
-  {expr: '{ a: "a", ...numMap }', expected: { a: 'a', 10: 'ten', 3: 'three' } },
-  {expr: '[7, ...list]', expected: [7,1,2,3,4,5] },
-  {expr: 'func(1, ...list)', expected: 17 },
+  {expr: '{ a: "a", one, [foo.bar]: 2 }', expected: { a: 'a', one: 1, baz: 2 }        },
+  {expr: '{ a: "a", ...numMap }',         expected: { a: 'a', 10: 'ten', 3: 'three' } },
+  {expr: '[7, ...list]',                  expected: [7,1,2,3,4,5]                     },
+  {expr: 'func(1, ...list)',              expected: 17                                },
+
+  // regex
+  {expr: '/123/', expected: /123/ },
+  {expr: '/a/ig', expected: /a/ig },
+
+  // template literals
+  {expr: '`abc`',                             expected: 'abc'               },
+  {expr: '`hi ${foo.bar}`',                   expected: 'hi baz'            },
+  {expr: 'tag`hi ${list[0]} and ${list[3]}`', expected: 'hi , and ,,=>,1,4' },
 ];
 
 const context = {
@@ -129,6 +137,8 @@ const context = {
   throw: () => { throw new Error('Should not be called.'); },
   Date,
   sub: { sub2: { Date } },
+  tag: (strings, ...expand) => [...strings, '=>', ...expand].join(','),
+  promise: (v) => Promise.resolve(v),
 };
 
 expr.addUnaryOp('@', (a) => {
@@ -148,10 +158,11 @@ expr.addEvaluatorAsync('TestNodeType', async (node, context) => await node.test 
 tape('sync', (t) => {
   const syncFixtures = [
     // Arrow Functions
-    {expr: '[1,2].find(v => v === 2)', expected: 2 },
-    {expr: 'list.reduce((sum, v) => sum + v, 0)', expected: 15 },
-    {expr: 'list.find(() => false)', expected: undefined},
-    {expr: 'list.findIndex(v => v === 3)', expected: 2},
+    {expr: '[1,2].find(v => v === 2)',            expected: 2          },
+    {expr: 'list.reduce((sum, v) => sum + v, 0)', expected: 15         },
+    {expr: 'list.find(() => false)',              expected: undefined  },
+    {expr: 'list.findIndex(v => v === 3)',        expected: 2          },
+    {expr: '[1].map(() => ({ a: 1 }))',           expected: [{ a: 1 }] },
   ];
 
   [...fixtures, ...syncFixtures].forEach((o) => {
