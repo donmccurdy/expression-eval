@@ -67,6 +67,22 @@ const unops = {
   '!': function (a) { return !a; },
 };
 
+const assignOps = {
+  '=': function(obj, key, val) { return obj[key] = val; },
+  '*=': function(obj, key, val) { return obj[key] *= val; },
+  '**=': function(obj, key, val) { return obj[key] **= val; },
+  '/=': function(obj, key, val) { return obj[key] /= val; },
+  '%=': function(obj, key, val) { return obj[key] %= val; },
+  '+=': function(obj, key, val) { return obj[key] += val; },
+  '-=': function(obj, key, val) { return obj[key] -= val; },
+  '<<=': function(obj, key, val) { return obj[key] <<= val; },
+  '>>=': function(obj, key, val) { return obj[key] >>= val; },
+  '>>>=': function(obj, key, val) { return obj[key] >>>= val; },
+  '&=': function(obj, key, val) { return obj[key] &= val; },
+  '^=': function(obj, key, val) { return obj[key] ^= val; },
+  '|=': function(obj, key, val) { return obj[key] |= val; },
+};
+
 declare type Context = Record<string, unknown>;
 declare type operand = number | string;
 declare type unaryCallback = (a: operand) => operand;
@@ -136,6 +152,10 @@ const evaluators: Record<string, evaluatorCallback> = {
 
   'ArrowFunctionExpression': evalArrowFunctionExpression,
 
+  'AssignmentExpression': evalAssignmentExpression,
+
+  'UpdateExpression': evalUpdateExpression,
+
   'NewExpression': evalNewExpression,
 
   'ObjectExpression': evalObjectExpression,
@@ -189,6 +209,10 @@ const evaluatorsAsync: Record<string, evaluatorCallback> = {
     return unops[node.operator](await evalAsync(node.argument, context));
   },
 
+  'AssignmentExpression': evalAssignmentExpressionAsync,
+
+  'UpdateExpression': evalUpdateExpressionAsync,
+
   'NewExpression': evalNewExpressionAsync,
 
   'ObjectExpression': evalObjectExpressionAsync,
@@ -233,7 +257,7 @@ function evaluateMember(node: jsep.MemberExpression, context: Context) {
   if (/^__proto__|prototype|constructor$/.test(key)) {
     throw Error(`Access to member "${key}" disallowed.`);
   }
-  return [object, object[key]];
+  return [object, object[key], key];
 }
 
 async function evaluateMemberAsync(node: jsep.MemberExpression, context: Context) {
@@ -247,7 +271,7 @@ async function evaluateMemberAsync(node: jsep.MemberExpression, context: Context
   if (/^__proto__|prototype|constructor$/.test(key)) {
     throw Error(`Access to member "${key}" disallowed.`);
   }
-  return [object, object[key]];
+  return [object, object[key], key];
 }
 
 function evaluateBinary(node: jsep.BinaryExpression | jsep.LogicalExpression, context): unknown {
@@ -281,11 +305,9 @@ async function evaluateBinaryAsync(node: jsep.BinaryExpression | jsep.LogicalExp
 }
 
 function evaluateCall(callee: jsep.Expression, context) {
-  let caller, fn, assign;
+  let caller, fn;
   if (callee.type === 'MemberExpression') {
-    assign = evaluateMember(callee as jsep.MemberExpression, context);
-    caller = assign[0];
-    fn = assign[1];
+    [caller, fn] = evaluateMember(callee as jsep.MemberExpression, context);
   } else {
     fn = evaluate(callee, context);
   }
@@ -296,11 +318,9 @@ function evaluateCall(callee: jsep.Expression, context) {
 }
 
 async function evaluateCallAsync(callee: jsep.Expression, context) {
-  let caller, fn, assign;
+  let caller, fn;
   if (callee.type === 'MemberExpression') {
-    assign = await evaluateMemberAsync(callee as jsep.MemberExpression, context);
-    caller = assign[0];
-    fn = assign[1];
+    [caller, fn] = await evaluateMemberAsync(callee as jsep.MemberExpression, context);
   } else {
     fn = await evalAsync(callee, context);
   }
@@ -396,6 +416,71 @@ function evalArrowContext(node, context, arrowArgs): Context {
   return arrowContext;
 }
 // ArrowFunctionExpression not supported as automatic async
+
+function evalAssignmentExpression(node: AssignmentExpression, context: Context) {
+  const [destObj, destKey] = getContextAndKey(node.left as AnyExpression, context);
+  return assignOps[node.operator](destObj, destKey, evaluate(node.right, context));
+}
+
+async function evalAssignmentExpressionAsync(node: AssignmentExpression, context: Context) {
+  const [destObj, destKey] = await getContextAndKeyAsync(node.left as AnyExpression, context);
+  return assignOps[node.operator](destObj, destKey, await evalAsync(node.right, context));
+}
+
+function evalUpdateExpression(node: UpdateExpression, context: Context) {
+  const [destObj, destKey] = getContextAndKey(node.argument as AnyExpression, context);
+  return evalUpdateOperation(node, destObj, destKey);
+}
+
+async function evalUpdateExpressionAsync(node: UpdateExpression, context: Context) {
+  const [destObj, destKey] = await getContextAndKeyAsync(node.argument as AnyExpression, context);
+  return evalUpdateOperation(node, destObj, destKey);
+}
+
+function evalUpdateOperation(node: UpdateExpression, destObj, destKey) {
+  if (node.prefix) {
+    return node.operator === '++'
+      ? ++destObj[destKey]
+      : --destObj[destKey];
+  }
+  return node.operator === '++'
+    ? destObj[destKey]++
+    : destObj[destKey]--;
+}
+
+function getContextAndKey(node: AnyExpression, context: Context) {
+  if (node.type === 'MemberExpression') {
+    const [obj, , key] = evaluateMember(node, context);
+    return [obj, key];
+  } else if (node.type === 'Identifier') {
+    return [context, node.name];
+  } else if (node.type === 'ConditionalExpression') {
+    return getContextAndKey(
+      (evaluate(node.test, context)
+        ? node.consequent
+        : node.alternate) as AnyExpression,
+      context);
+  } else {
+    throw new Error('Invalid Member Key');
+  }
+}
+
+async function getContextAndKeyAsync(node: AnyExpression, context: Context) {
+  if (node.type === 'MemberExpression') {
+    const [obj, , key] = await evaluateMemberAsync(node, context);
+    return [obj, key];
+  } else if (node.type === 'Identifier') {
+    return [context, node.name];
+  } else if (node.type === 'ConditionalExpression') {
+    return getContextAndKeyAsync(
+      (await evalAsync(node.test, context)
+        ? node.consequent
+        : node.alternate) as AnyExpression,
+      context);
+  } else {
+    throw new Error('Invalid Member Key');
+  }
+}
 
 function evalNewExpression(node: NewExpression, context: Context) {
   const [ctor] = evaluateCall(node.callee, context);

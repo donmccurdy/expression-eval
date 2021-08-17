@@ -101,6 +101,15 @@ const fixtures = [
   {expr: '(1 # 2 # 3)', expected: 1.5   }, // Fails with undefined precedence, see issue #45
   {expr: '1 + 2 ~ 3',   expected: 9     }, // ~ is * but with low precedence
 
+  // assignment/update
+  {expr: 'a = 2', expected: 2, context: {a: 1}, expObj: {a: 2}},
+  {expr: 'a += 2', expected: 3, context: {a: 1}, expObj: {a: 3}},
+  {expr: 'a++', expected: 1, context: {a: 1}, expObj: {a: 2}},
+  {expr: '++a', expected: 2, context: {a: 1}, expObj: {a: 2}},
+  {expr: 'a--', expected: 1, context: {a: 1}, expObj: {a: 0}},
+  {expr: '--a', expected: 0, context: {a: 1}, expObj: {a: 0}},
+  {expr: 'a[0] = 3', expected: 3, context: {a: [0, 0]}, expObj: {a: [3, 0]}},
+
   // new
   {expr: '(new Date(2021, 8)).getFullYear()',             expected: 2021                          },
   {expr: '(new sub.sub2["Date"](2021, 8)).getFullYear()', expected: 2021                          },
@@ -141,6 +150,19 @@ const context = {
   promise: (v) => Promise.resolve(v),
 };
 
+const cloneDeep = (obj) => {
+  if (Array.isArray(obj)) {
+    return [...obj];
+  }
+  const clone = {};
+  Object.keys(obj)
+    .forEach((k) => {
+      clone[k] = typeof obj[k] === 'object' && obj[k] ? cloneDeep(obj[k]) : obj[k]
+    });
+  return clone;
+}
+
+
 expr.addUnaryOp('@', (a) => {
   if (a === 2) {
     return 'two';
@@ -174,9 +196,13 @@ tape('sync', (t) => {
   ];
 
   [...fixtures, ...syncFixtures].forEach((o) => {
-    const val = expr.compile(o.expr)(context);
+    const ctx = cloneDeep(o.context || context);
+    const val = expr.compile(o.expr)(ctx);
     const compare = t[typeof o.expected === 'object' ? 'deepEqual' : 'equal'];
     compare(val, o.expected, `${o.expr} (${val}) === ${o.expected}`);
+    if (o.expObj) {
+      t.deepEqual(ctx, o.expObj, `${o.expr} (${JSON.stringify(ctx)}) === ${JSON.stringify(o.expObj)}`);
+    }
   });
 
   const val = expr.eval.bind(null, { type: 'TestNodeType', test: 'testing ' })(context);
@@ -205,9 +231,13 @@ tape('async', async (t) => {
   });
 
   for (let o of asyncFixtures) {
-    const val = await expr.compileAsync(o.expr)(asyncContext);
+    const ctx = cloneDeep(o.context || asyncContext);
+    const val = await expr.compileAsync(o.expr)(ctx);
     const compare = t[typeof o.expected === 'object' ? 'deepEqual' : 'equal'];
     compare(val, o.expected, `${o.expr} (${val}) === ${o.expected}`);
+    if (o.expObj) {
+      t.deepEqual(ctx, o.expObj, `${o.expr} (${JSON.stringify(ctx)}) === ${JSON.stringify(o.expObj)}`);
+    }
   }
 
   const val = await expr.evalAsync.bind(null, { type: 'TestNodeType', test: 'testing ' })(context);
