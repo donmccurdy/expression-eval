@@ -1,4 +1,10 @@
 import jsep from 'jsep';
+import { ArrowExpression } from '@jsep/plugin-arrow';
+import { UpdateExpression, AssignmentExpression } from '@jsep/plugin-assignment';
+import { NewExpression } from '@jsep/plugin-new';
+import { ObjectExpression, Property } from '@jsep/plugin-object';
+import { SpreadElement } from '@jsep/plugin-spread';
+import { TaggedTemplateExpression, TemplateElement, TemplateLiteral } from '@jsep/plugin-template';
 
 /**
  * Evaluation code from JSEP project, under MIT License.
@@ -61,10 +67,11 @@ const unops = {
   '!': function (a) { return !a; },
 };
 
+declare type Context = Record<string, unknown>;
 declare type operand = number | string;
 declare type unaryCallback = (a: operand) => operand;
 declare type binaryCallback = (a: operand, b: operand) => operand;
-declare type evaluatorCallback = (node: AnyExpression, context: Record<string, unknown>) => unknown;
+declare type evaluatorCallback = (node: AnyExpression, context: Context) => unknown;
 
 type AnyExpression = jsep.ArrayExpression
   | jsep.BinaryExpression
@@ -75,7 +82,18 @@ type AnyExpression = jsep.ArrayExpression
   | jsep.Literal
   | jsep.LogicalExpression
   | jsep.ThisExpression
-  | jsep.UnaryExpression;
+  | jsep.UnaryExpression
+  | ArrowExpression
+  | UpdateExpression
+  | AssignmentExpression
+  | NewExpression
+  | ObjectExpression
+  | Property
+  | SpreadElement
+  | TaggedTemplateExpression
+  | TemplateLiteral
+  | TemplateElement
+  ;
 
 const evaluators: Record<string, evaluatorCallback> = {
   'ArrayExpression': function(node: jsep.ArrayExpression, context) {
@@ -90,20 +108,17 @@ const evaluators: Record<string, evaluatorCallback> = {
     return fn.apply(caller, evaluateArray(node.arguments, context));
   },
 
-  'NewExpression': function(node: any, context) {
+  'NewExpression': function(node: NewExpression, context) {
     const [ctor] = evaluateCall(node.callee, context);
     const args = evaluateArray(node.arguments, context);
     return construct(ctor, args, node);
   },
 
-  'ArrowFunctionExpression': function(node: any, context) {
-    const arrowContext = { ...context };
+  'ArrowFunctionExpression': function(node: ArrowExpression, context) {
     return (...arrowArgs) => {
-      (node.params || []).forEach((n, i) => {
-        arrowContext[n.name] = arrowArgs[i];
-      });
+      const arrowContext = evalArrowContext(node, context, arrowArgs);
       return evaluate(node.body, arrowContext);
-    }
+    };
   },
 
   'ConditionalExpression': function(node: jsep.ConditionalExpression, context) {
@@ -132,27 +147,26 @@ const evaluators: Record<string, evaluatorCallback> = {
     return unops[node.operator](evaluate(node.argument, context));
   },
 
-  'ObjectExpression': function(node: any, context) {
+  'ObjectExpression': function(node: ObjectExpression, context) {
     const obj = {};
-    node.properties.forEach((prop) => {
+    node.properties.forEach((prop: Property | SpreadElement) => {
       if (prop.type === 'SpreadElement') {
         Object.assign(obj, evaluate(prop.argument, context));
-      } else {
+      } else if (prop.type === 'Property') {
         const key: string = prop.key.type === 'Identifier'
-          ? prop.key.name
-          : evaluate(prop.key, context);
-        const value = evaluate(prop.shorthand ? prop.key : prop.value, context);
-        obj[key] = value;
+          ? (<jsep.Identifier>prop.key).name
+          : evaluate(prop.key, context).toString()
+        obj[key] = evaluate(prop.shorthand ? prop.key : prop.value, context);
       }
     });
     return obj;
   },
 
-  'SpreadElement': function(node: any, context) {
+  'SpreadElement': function(node: SpreadElement, context) {
     return evaluate(node.argument, context);
   },
 
-  'TaggedTemplateExpression': function(node: any, context) {
+  'TaggedTemplateExpression': function(node: TaggedTemplateExpression, context) {
     const [fn, caller] = evaluateCall(node.tag, context);
     const args = [
       node.quasi.quasis.map(q => q.value.cooked),
@@ -161,7 +175,7 @@ const evaluators: Record<string, evaluatorCallback> = {
     return fn.apply(caller, args);
   },
 
-  'TemplateLiteral': function(node: any, context) {
+  'TemplateLiteral': function(node: TemplateLiteral, context) {
     return node.quasis.reduce((str, q, i) => {
       str += q.value.cooked;
       if (!q.tail) {
@@ -188,7 +202,7 @@ const evaluatorsAsync: Record<string, evaluatorCallback> = {
     );
   },
 
-  'NewExpression': async function(node: any, context) {
+  'NewExpression': async function(node: NewExpression, context) {
     const [ctor] = await evaluateCallAsync(node.callee, context);
     const args = await evaluateArrayAsync(node.arguments, context);
     return construct(ctor, args, node);
@@ -222,27 +236,26 @@ const evaluatorsAsync: Record<string, evaluatorCallback> = {
     return unops[node.operator](await evalAsync(node.argument, context));
   },
 
-  'ObjectExpression': async function(node: any, context) {
+  'ObjectExpression': async function(node: ObjectExpression, context) {
     const obj = {};
-    await Promise.all(node.properties.map(async (prop) => {
+    await Promise.all(node.properties.map(async (prop: Property | SpreadElement) => {
       if (prop.type === 'SpreadElement') {
         Object.assign(obj, evaluate(prop.argument, context));
       } else {
         const key: string = prop.key.type === 'Identifier'
-          ? prop.key.name
-          : await evalAsync(prop.key, context);
-        const value = await evalAsync(prop.shorthand? prop.key : prop.value, context);
-        obj[key] = value;
+          ? (<jsep.Identifier>prop.key).name
+          : (await evalAsync(prop.key, context)).toString();
+        obj[key] = await evalAsync(prop.shorthand? prop.key : prop.value, context);
       }
     }));
     return obj;
   },
 
-  'SpreadElement': function(node: any, context) {
+  'SpreadElement': function(node: SpreadElement, context) {
     return evalAsync(node.argument, context);
   },
 
-  'TaggedTemplateExpression': async function(node: any, context) {
+  'TaggedTemplateExpression': async function(node: TaggedTemplateExpression, context) {
     const [fn, caller] = await evaluateCallAsync(node.tag, context);
     const args = [
       node.quasi.quasis.map(q => q.value.cooked),
@@ -251,7 +264,7 @@ const evaluatorsAsync: Record<string, evaluatorCallback> = {
     return await fn.apply(caller, args);
   },
 
-  'TemplateLiteral': async function(node: any, context) {
+  'TemplateLiteral': async function(node: TemplateLiteral, context) {
     const expressions = await evaluateArrayAsync(node.expressions, context);
     return node.quasis.reduce((str, q, i) => {
       str += q.value.cooked;
@@ -263,21 +276,21 @@ const evaluatorsAsync: Record<string, evaluatorCallback> = {
   },
 };
 
-function evaluateArray(list, context) {
+function evaluateArray(list: jsep.Expression[], context: Context): unknown[] {
   return list.reduce((arr, node) => {
-    const val: any = evaluate(node, context);
-    if (node.type === 'SpreadElement') {
-      return [...arr, ...val];
+    const val = evaluate(node, context);
+    if ((node as AnyExpression).type === 'SpreadElement') {
+      return [...arr, ...(val as Iterable<unknown>)];
     }
     arr.push(val);
     return arr;
   }, []);
 }
 
-async function evaluateArrayAsync(list, context) {
+async function evaluateArrayAsync(list: jsep.Expression[], context: Context): Promise<unknown[]> {
   const res: any[] = await Promise.all(list.map((v) => evalAsync(v, context)));
   return res.reduce((arr, v, i) => {
-    if (list[i].type === 'SpreadElement') {
+    if ((list[i] as AnyExpression).type === 'SpreadElement') {
       return [...arr, ...v];
     }
     arr.push(v);
@@ -285,7 +298,7 @@ async function evaluateArrayAsync(list, context) {
   }, []);
 }
 
-function evaluateMember(node: jsep.MemberExpression, context: Record<string, unknown>) {
+function evaluateMember(node: jsep.MemberExpression, context: Context) {
   const object = evaluate(node.object, context);
   let key: string;
   if (node.computed) {
@@ -299,7 +312,7 @@ function evaluateMember(node: jsep.MemberExpression, context: Record<string, unk
   return [object, object[key]];
 }
 
-async function evaluateMemberAsync(node: jsep.MemberExpression, context: Record<string, unknown>) {
+async function evaluateMemberAsync(node: jsep.MemberExpression, context: Context) {
   const object = await evalAsync(node.object, context);
   let key: string;
   if (node.computed) {
@@ -353,7 +366,7 @@ function evaluateCall(callee: jsep.Expression, context) {
     fn = evaluate(callee, context);
   }
   if (typeof fn !== 'function') {
-    throw new Error(`'${nodeFunctionName(callee)}' is not a function`);
+    throw new Error(`'${nodeFunctionName(callee as AnyExpression)}' is not a function`);
   }
   return [fn, caller];
 }
@@ -368,9 +381,88 @@ async function evaluateCallAsync(callee: jsep.Expression, context) {
     fn = await evalAsync(callee, context);
   }
   if (typeof fn !== 'function') {
-    throw new Error(`'${nodeFunctionName(callee)}' is not a function`);
+    throw new Error(`'${nodeFunctionName(callee as AnyExpression)}' is not a function`);
   }
   return [fn, caller];
+}
+
+function evalArrowContext(node, context, arrowArgs): Context {
+  const arrowContext = { ...context };
+
+  ((node.params as AnyExpression[]) || []).forEach((param, i) => {
+    // default value:
+    if (param.type === 'AssignmentExpression') {
+      if (arrowArgs[i] === undefined) {
+        arrowArgs[i] = evaluate(param.right, context);
+      }
+      param = param.left as AnyExpression;
+    }
+
+    if (param.type === 'Identifier') {
+      arrowContext[(param as jsep.Identifier).name] = arrowArgs[i];
+    } else if (param.type === 'ArrayExpression') {
+      // array destructuring
+      (param.elements as AnyExpression[]).forEach((el, j) => {
+        let val = arrowArgs[i][j];
+        if (el.type === 'AssignmentExpression') {
+          if (val === undefined) {
+            // default value
+            val = evaluate(el.right, context);
+          }
+          el = el.left as AnyExpression;
+        }
+
+        if (el.type === 'Identifier') {
+          arrowContext[(el as jsep.Identifier).name] = val;
+        } else {
+          throw new Error('Unexpected arrow function argument');
+        }
+      });
+    } else if (param.type === 'ObjectExpression') {
+      // object destructuring
+      const keys = [];
+      (param.properties as AnyExpression[]).forEach((prop) => {
+        let p = prop;
+        if (p.type === 'AssignmentExpression') {
+          p = p.left as AnyExpression;
+        }
+
+        let key;
+        if (p.type === 'Property') {
+          key = p.key.type === 'Identifier'
+            ? (p.key as jsep.Identifier).name
+            : evaluate(p.key, context).toString();
+        } else if (p.type === 'Identifier') {
+          key = p.name;
+        } else if (p.type === 'SpreadElement' && p.argument.type === 'Identifier') {
+          key = (p.argument as jsep.Identifier).name;
+        } else {
+          throw new Error('Unexpected arrow function argument');
+        }
+
+        let val = arrowArgs[i][key];
+        if (p.type === 'SpreadElement') {
+          // all remaining object properties. Copy arg obj, then delete from our copy
+          val = { ...arrowArgs[i] };
+          keys.forEach((k) => {
+            delete val[k];
+          });
+        } else if (val === undefined && prop.type === 'AssignmentExpression') {
+          // default value
+          val = evaluate(prop.right, context);
+        }
+
+        arrowContext[key] = val;
+        keys.push(key);
+      });
+    } else if (param.type === 'SpreadElement' && param.argument.type === 'Identifier') {
+      const key = (param.argument as jsep.Identifier).name;
+      arrowContext[key] = arrowArgs.slice(i);
+    } else {
+      throw new Error('Unexpected arrow function argument');
+    }
+  });
+  return arrowContext;
 }
 
 function construct(ctor, args, node) {
@@ -381,32 +473,35 @@ function construct(ctor, args, node) {
   }
 }
 
-function nodeFunctionName(callee: any): string {
+function nodeFunctionName(callee: AnyExpression): string {
   return callee
-    && (callee.name
-      || (callee.property && callee.property.name));
+    && ((callee as jsep.Identifier).name
+      || ((callee as jsep.MemberExpression).property
+        && ((callee as jsep.MemberExpression).property as jsep.Identifier).name));
 }
 
 
-function evaluate(_node: jsep.Expression, context: Record<string, unknown>): unknown {
+function evaluate(_node: jsep.Expression, context: Context): unknown {
   const evaluator = evaluators[_node.type];
   return evaluator
     ? evaluator(_node as AnyExpression, context)
     : undefined;
 }
 
-async function evalAsync(_node: jsep.Expression, context: Record<string, unknown>) {
+async function evalAsync(_node: jsep.Expression, context: Context)
+  : Promise<unknown> {
   const evaluator = evaluatorsAsync[_node.type];
   return evaluator
     ? evaluator(_node as AnyExpression, context)
     : undefined;
 }
 
-function compile(expression: string | jsep.Expression): (context: Record<string, unknown>) => unknown {
+function compile(expression: string | jsep.Expression): (context: Context) => unknown {
   return evaluate.bind(null, jsep(expression));
 }
 
-function compileAsync(expression: string | jsep.Expression): (context: Record<string, unknown>) => Promise<unknown> {
+function compileAsync(expression: string | jsep.Expression)
+  : (context: Context) => Promise<unknown> {
   return evalAsync.bind(null, jsep(expression));
 }
 
@@ -417,7 +512,11 @@ function addUnaryOp(operator: string, _function: unaryCallback): void {
 }
 
 // Added functions to inject Custom Binary Operators (and override existing ones)
-function addBinaryOp(operator: string, precedence_or_fn: number | binaryCallback, _function: binaryCallback): void {
+function addBinaryOp(
+  operator: string,
+  precedence_or_fn: number | binaryCallback,
+  _function: binaryCallback)
+  : void {
   if (_function) {
     jsep.addBinaryOp(operator, precedence_or_fn as number);
     binops[operator] = _function;

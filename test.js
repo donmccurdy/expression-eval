@@ -2,14 +2,14 @@ require('source-map-support').install();
 
 const expr = require('./dist/expression-eval.js');
 const tape = require('tape');
-expr.parse.plugins.register(require('@jsep/arrow'));
-expr.parse.plugins.register(require('@jsep/async-await'));
-expr.parse.plugins.register(require('@jsep/new'));
-expr.parse.plugins.register(require('@jsep/object'));
-expr.parse.plugins.register(require('@jsep/regex'));
-expr.parse.plugins.register(require('@jsep/spread'));
-expr.parse.plugins.register(require('@jsep/template'));
-expr.parse.plugins.register(require('@jsep/ternary'));
+expr.parse.plugins.register(require('@jsep/plugin-arrow'));
+expr.parse.plugins.register(require('@jsep/plugin-assignment'));
+expr.parse.plugins.register(require('@jsep/plugin-new'));
+expr.parse.plugins.register(require('@jsep/plugin-object'));
+expr.parse.plugins.register(require('@jsep/plugin-regex'));
+expr.parse.plugins.register(require('@jsep/plugin-spread'));
+expr.parse.plugins.register(require('@jsep/plugin-template'));
+expr.parse.plugins.register(require('@jsep/plugin-ternary'));
 
 const fixtures = [
 
@@ -158,11 +158,19 @@ expr.addEvaluatorAsync('TestNodeType', async (node, context) => await node.test 
 tape('sync', (t) => {
   const syncFixtures = [
     // Arrow Functions
-    {expr: '[1,2].find(v => v === 2)',            expected: 2          },
-    {expr: 'list.reduce((sum, v) => sum + v, 0)', expected: 15         },
-    {expr: 'list.find(() => false)',              expected: undefined  },
-    {expr: 'list.findIndex(v => v === 3)',        expected: 2          },
-    {expr: '[1].map(() => ({ a: 1 }))',           expected: [{ a: 1 }] },
+    {expr: '[1,2].find(v => v === 2)',                     expected: 2                                  },
+    {expr: 'list.reduce((sum, v) => sum + v, 0)',          expected: 15                                 },
+    {expr: 'list.find(() => false)',                       expected: undefined                          },
+    {expr: 'list.findIndex(v => v === 3)',                 expected: 2                                  },
+    {expr: '[1].map(() => ({ a: 1 }))',                    expected: [{ a: 1 }]                         },
+    {expr: '[[1, 2]].map([a, b] => a + b)',                expected: [3]                                },
+    {expr: '[[1, 2]].map(([a, b] = []) => a+b)',           expected: [3]                                },
+    {expr: '[[1,],undefined].map(([a=2, b=5]=[]) => a+b)', expected: [6, 7]                             },
+    {expr: '[{a:1}].map(({a}) => a)',                      expected: [1]                                },
+    {expr: '[undefined].map(({a=1}={}) => a)',             expected: [1]                                },
+    {expr: '[1, 2].map((a, ...b) => [a, b])',              expected: [ [1, [0,[1,2]]], [2, [1,[1,2]]] ] },
+    {expr: '[{a:1,b:2,c:3}].map(({a, ...b}) => [a, b])',   expected: [[1, {b:2,c:3}]]                   },
+    {expr: '[{a:1}].map(({...foo}) => foo.a)',             expected: [1]                                },
   ];
 
   [...fixtures, ...syncFixtures].forEach((o) => {
