@@ -88,7 +88,7 @@ to evaluate the operator
 - addBinaryOp(operator, precedence | evaluator, evaluator).
 Will add the operator to jsep at the given precedence
 (if provided), and the function to evaluate the operator
-- addEvaluator/addEvaluatorAsync(nodeType, evaluator).
+- addEvaluatorSync/addEvaluatorAsync(nodeType, evaluator).
 Will add the evaluator function to the map of functions
 for each node type.
 

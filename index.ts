@@ -113,21 +113,21 @@ type AnyExpression = jsep.ArrayExpression
 
 const evaluators: Record<string, evaluatorCallback> = {
   'ArrayExpression': function(node: jsep.ArrayExpression, context) {
-    return evaluateArray(node.elements, context);
+    return evaluateArraySync(node.elements, context);
   },
 
-  'LogicalExpression': evaluateBinary,
-  'BinaryExpression': evaluateBinary,
+  'LogicalExpression': evaluateBinarySync,
+  'BinaryExpression': evaluateBinarySync,
 
   'CallExpression': function(node: jsep.CallExpression, context) {
-    const [fn, caller] = evaluateCall(node.callee, context);
-    return fn.apply(caller, evaluateArray(node.arguments, context));
+    const [fn, caller] = evaluateCallSync(node.callee, context);
+    return fn.apply(caller, evaluateArraySync(node.arguments, context));
   },
 
   'ConditionalExpression': function(node: jsep.ConditionalExpression, context) {
-    return evaluate(node.test, context)
-      ? evaluate(node.consequent, context)
-      : evaluate(node.alternate, context);
+    return evalSync(node.test, context)
+      ? evalSync(node.consequent, context)
+      : evalSync(node.alternate, context);
   },
 
   'Identifier': function(node: jsep.Identifier, context) {
@@ -139,7 +139,7 @@ const evaluators: Record<string, evaluatorCallback> = {
   },
 
   'MemberExpression': function(node: jsep.MemberExpression, context) {
-    return evaluateMember(node, context)[1];
+    return evaluateMemberSync(node, context)[1];
   },
 
   'ThisExpression': function(node: jsep.ThisExpression, context) {
@@ -147,24 +147,24 @@ const evaluators: Record<string, evaluatorCallback> = {
   },
 
   'UnaryExpression': function(node: jsep.UnaryExpression, context) {
-    return unops[node.operator](evaluate(node.argument, context));
+    return unops[node.operator](evalSync(node.argument, context));
   },
 
   'ArrowFunctionExpression': evalArrowFunctionExpression,
 
-  'AssignmentExpression': evalAssignmentExpression,
+  'AssignmentExpression': evalAssignmentExpressionSync,
 
-  'UpdateExpression': evalUpdateExpression,
+  'UpdateExpression': evalUpdateExpressionSync,
 
-  'NewExpression': evalNewExpression,
+  'NewExpression': evalNewExpressionSync,
 
-  'ObjectExpression': evalObjectExpression,
+  'ObjectExpression': evalObjectExpressionSync,
 
-  'SpreadElement': evalSpreadElement,
+  'SpreadElement': evalSpreadElementSync,
 
-  'TaggedTemplateExpression': evalTaggedTemplateExpression,
+  'TaggedTemplateExpression': evalTaggedTemplateExpressionSync,
 
-  'TemplateLiteral': evalTemplateLiteral
+  'TemplateLiteral': evalTemplateLiteralSync
 };
 
 const evaluatorsAsync: Record<string, evaluatorCallback> = {
@@ -224,19 +224,8 @@ const evaluatorsAsync: Record<string, evaluatorCallback> = {
   'TemplateLiteral': evalTemplateLiteralAsync,
 };
 
-function evaluateArray(list: jsep.Expression[], context: Context): unknown[] {
-  return list.reduce((arr, node) => {
-    const val = evaluate(node, context);
-    if ((node as AnyExpression).type === 'SpreadElement') {
-      return [...arr, ...(val as Iterable<unknown>)];
-    }
-    arr.push(val);
-    return arr;
-  }, []);
-}
-
-async function evaluateArrayAsync(list: jsep.Expression[], context: Context): Promise<unknown[]> {
-  const res: any[] = await Promise.all(list.map((v) => evalAsync(v, context)));
+function evaluateArraySync(list: jsep.Expression[], context: Context): unknown[] {
+  const res: any[] = list.map(v => evalSync(v, context));
   return res.reduce((arr, v, i) => {
     if ((list[i] as AnyExpression).type === 'SpreadElement') {
       return [...arr, ...v];
@@ -246,11 +235,22 @@ async function evaluateArrayAsync(list: jsep.Expression[], context: Context): Pr
   }, []);
 }
 
-function evaluateMember(node: jsep.MemberExpression, context: Context) {
-  const object = evaluate(node.object, context);
+async function evaluateArrayAsync(list: jsep.Expression[], context: Context): Promise<unknown[]> {
+  const res: any[] = await Promise.all(list.map(v => evalAsync(v, context)));
+  return res.reduce((arr, v, i) => {
+    if ((list[i] as AnyExpression).type === 'SpreadElement') {
+      return [...arr, ...v];
+    }
+    arr.push(v);
+    return arr;
+  }, []);
+}
+
+function evaluateMemberSync(node: jsep.MemberExpression, context: Context) {
+  const object = evalSync(node.object, context);
   let key: string;
   if (node.computed) {
-    key = evaluate(node.property, context) as string;
+    key = evalSync(node.property, context) as string;
   } else {
     key = (node.property as jsep.Identifier).name;
   }
@@ -274,13 +274,14 @@ async function evaluateMemberAsync(node: jsep.MemberExpression, context: Context
   return [object, object[key], key];
 }
 
-function evaluateBinary(node: jsep.BinaryExpression | jsep.LogicalExpression, context): unknown {
+function evaluateBinarySync(node: jsep.BinaryExpression | jsep.LogicalExpression, context): unknown {
   if (node.operator === '||') {
-    return evaluate(node.left, context) || evaluate(node.right, context);
+    return evalSync(node.left, context) || evalSync(node.right, context);
   } else if (node.operator === '&&') {
-    return evaluate(node.left, context) && evaluate(node.right, context);
+    return evalSync(node.left, context) && evalSync(node.right, context);
   }
-  return binops[node.operator](evaluate(node.left, context), evaluate(node.right, context));
+  const [left, right] = [evalSync(node.left, context), evalSync(node.right, context)];
+  return binops[node.operator](left, right);
 }
 
 async function evaluateBinaryAsync(node: jsep.BinaryExpression | jsep.LogicalExpression, context) {
@@ -304,12 +305,12 @@ async function evaluateBinaryAsync(node: jsep.BinaryExpression | jsep.LogicalExp
   return binops[node.operator](left, right);
 }
 
-function evaluateCall(callee: jsep.Expression, context) {
+function evaluateCallSync(callee: jsep.Expression, context) {
   let caller, fn;
   if (callee.type === 'MemberExpression') {
-    [caller, fn] = evaluateMember(callee as jsep.MemberExpression, context);
+    [caller, fn] = evaluateMemberSync(callee as jsep.MemberExpression, context);
   } else {
-    fn = evaluate(callee, context);
+    fn = evalSync(callee, context);
   }
   if (typeof fn !== 'function') {
     throw new Error(`'${nodeFunctionName(callee as AnyExpression)}' is not a function`);
@@ -333,7 +334,7 @@ async function evaluateCallAsync(callee: jsep.Expression, context) {
 function evalArrowFunctionExpression(node: ArrowExpression, context: Context) {
   return (...arrowArgs) => {
     const arrowContext = evalArrowContext(node, context, arrowArgs);
-    return evaluate(node.body, arrowContext);
+    return evalSync(node.body, arrowContext);
   };
 }
 
@@ -344,7 +345,7 @@ function evalArrowContext(node, context, arrowArgs): Context {
     // default value:
     if (param.type === 'AssignmentExpression') {
       if (arrowArgs[i] === undefined) {
-        arrowArgs[i] = evaluate(param.right, context);
+        arrowArgs[i] = evalSync(param.right, context);
       }
       param = param.left as AnyExpression;
     }
@@ -358,7 +359,7 @@ function evalArrowContext(node, context, arrowArgs): Context {
         if (el.type === 'AssignmentExpression') {
           if (val === undefined) {
             // default value
-            val = evaluate(el.right, context);
+            val = evalSync(el.right, context);
           }
           el = el.left as AnyExpression;
         }
@@ -382,7 +383,7 @@ function evalArrowContext(node, context, arrowArgs): Context {
         if (p.type === 'Property') {
           key = p.key.type === 'Identifier'
             ? (p.key as jsep.Identifier).name
-            : evaluate(p.key, context).toString();
+            : evalSync(p.key, context).toString();
         } else if (p.type === 'Identifier') {
           key = p.name;
         } else if (p.type === 'SpreadElement' && p.argument.type === 'Identifier') {
@@ -400,7 +401,7 @@ function evalArrowContext(node, context, arrowArgs): Context {
           });
         } else if (val === undefined && prop.type === 'AssignmentExpression') {
           // default value
-          val = evaluate(prop.right, context);
+          val = evalSync(prop.right, context);
         }
 
         arrowContext[key] = val;
@@ -417,9 +418,9 @@ function evalArrowContext(node, context, arrowArgs): Context {
 }
 // ArrowFunctionExpression not supported as automatic async
 
-function evalAssignmentExpression(node: AssignmentExpression, context: Context) {
-  const [destObj, destKey] = getContextAndKey(node.left as AnyExpression, context);
-  return assignOps[node.operator](destObj, destKey, evaluate(node.right, context));
+function evalAssignmentExpressionSync(node: AssignmentExpression, context: Context) {
+  const [destObj, destKey] = getContextAndKeySync(node.left as AnyExpression, context);
+  return assignOps[node.operator](destObj, destKey, evalSync(node.right, context));
 }
 
 async function evalAssignmentExpressionAsync(node: AssignmentExpression, context: Context) {
@@ -427,8 +428,8 @@ async function evalAssignmentExpressionAsync(node: AssignmentExpression, context
   return assignOps[node.operator](destObj, destKey, await evalAsync(node.right, context));
 }
 
-function evalUpdateExpression(node: UpdateExpression, context: Context) {
-  const [destObj, destKey] = getContextAndKey(node.argument as AnyExpression, context);
+function evalUpdateExpressionSync(node: UpdateExpression, context: Context) {
+  const [destObj, destKey] = getContextAndKeySync(node.argument as AnyExpression, context);
   return evalUpdateOperation(node, destObj, destKey);
 }
 
@@ -448,15 +449,15 @@ function evalUpdateOperation(node: UpdateExpression, destObj, destKey) {
     : destObj[destKey]--;
 }
 
-function getContextAndKey(node: AnyExpression, context: Context) {
+function getContextAndKeySync(node: AnyExpression, context: Context) {
   if (node.type === 'MemberExpression') {
-    const [obj, , key] = evaluateMember(node, context);
+    const [obj, , key] = evaluateMemberSync(node, context);
     return [obj, key];
   } else if (node.type === 'Identifier') {
     return [context, node.name];
   } else if (node.type === 'ConditionalExpression') {
-    return getContextAndKey(
-      (evaluate(node.test, context)
+    return getContextAndKeySync(
+      (evalSync(node.test, context)
         ? node.consequent
         : node.alternate) as AnyExpression,
       context);
@@ -482,9 +483,9 @@ async function getContextAndKeyAsync(node: AnyExpression, context: Context) {
   }
 }
 
-function evalNewExpression(node: NewExpression, context: Context) {
-  const [ctor] = evaluateCall(node.callee, context);
-  const args = evaluateArray(node.arguments, context);
+function evalNewExpressionSync(node: NewExpression, context: Context) {
+  const [ctor] = evaluateCallSync(node.callee, context);
+  const args = evaluateArraySync(node.arguments, context);
   return construct(ctor, args, node);
 }
 
@@ -494,16 +495,16 @@ async function evalNewExpressionAsync(node: NewExpression, context: Context) {
   return construct(ctor, args, node);
 }
 
-function evalObjectExpression(node: ObjectExpression, context: Context) {
+function evalObjectExpressionSync(node: ObjectExpression, context: Context) {
   const obj = {};
-  node.properties.forEach((prop: Property | SpreadElement) => {
+  node.properties.map((prop: Property | SpreadElement) => {
     if (prop.type === 'SpreadElement') {
-      Object.assign(obj, evaluate(prop.argument, context));
+      Object.assign(obj, evalSync(prop.argument, context));
     } else if (prop.type === 'Property') {
       const key: string = prop.key.type === 'Identifier'
         ? (<jsep.Identifier>prop.key).name
-        : evaluate(prop.key, context).toString()
-      obj[key] = evaluate(prop.shorthand ? prop.key : prop.value, context);
+        : evalSync(prop.key, context).toString()
+      obj[key] = evalSync(prop.shorthand ? prop.key : prop.value, context);
     }
   });
   return obj;
@@ -513,7 +514,7 @@ async function evalObjectExpressionAsync(node: ObjectExpression, context: Contex
   const obj = {};
   await Promise.all(node.properties.map(async (prop: Property | SpreadElement) => {
     if (prop.type === 'SpreadElement') {
-      Object.assign(obj, evaluate(prop.argument, context));
+      Object.assign(obj, evalSync(prop.argument, context));
     } else {
       const key: string = prop.key.type === 'Identifier'
         ? (<jsep.Identifier>prop.key).name
@@ -524,19 +525,19 @@ async function evalObjectExpressionAsync(node: ObjectExpression, context: Contex
   return obj;
 }
 
-function evalSpreadElement(node: SpreadElement, context: Context) {
-  return evaluate(node.argument, context);
+function evalSpreadElementSync(node: SpreadElement, context: Context) {
+  return evalSync(node.argument, context);
 }
 
 async function evalSpreadElementAsync(node: SpreadElement, context: Context) {
   return evalAsync(node.argument, context);
 }
 
-function evalTaggedTemplateExpression(node: TaggedTemplateExpression, context: Context) {
-  const [fn, caller] = evaluateCall(node.tag, context);
+function evalTaggedTemplateExpressionSync(node: TaggedTemplateExpression, context: Context) {
+  const [fn, caller] = evaluateCallSync(node.tag, context);
   const args = [
     node.quasi.quasis.map(q => q.value.cooked),
-    ...evaluateArray(node.quasi.expressions, context),
+    ...evaluateArraySync(node.quasi.expressions, context),
   ];
   return fn.apply(caller, args);
 }
@@ -550,11 +551,12 @@ async function evalTaggedTemplateExpressionAsync(node: TaggedTemplateExpression,
   return await fn.apply(caller, args);
 }
 
-function evalTemplateLiteral(node: TemplateLiteral, context: Context) {
+function evalTemplateLiteralSync(node: TemplateLiteral, context: Context) {
+  const expressions = evaluateArraySync(node.expressions, context);
   return node.quasis.reduce((str, q, i) => {
     str += q.value.cooked;
     if (!q.tail) {
-      str += evaluate(node.expressions[i], context);
+      str += expressions[i];
     }
     return str;
   }, '');
@@ -587,7 +589,7 @@ function nodeFunctionName(callee: AnyExpression): string {
 }
 
 
-function evaluate(_node: jsep.Expression, context: Context): unknown {
+function evalSync(_node: jsep.Expression, context: Context): unknown {
   const evaluator = evaluators[_node.type];
   return evaluator
     ? evaluator(_node as AnyExpression, context)
@@ -602,8 +604,8 @@ async function evalAsync(_node: jsep.Expression, context: Context)
     : undefined;
 }
 
-function compile(expression: string | jsep.Expression): (context: Context) => unknown {
-  return evaluate.bind(null, jsep(expression));
+function compileSync(expression: string | jsep.Expression): (context: Context) => unknown {
+  return evalSync.bind(null, jsep(expression));
 }
 
 function compileAsync(expression: string | jsep.Expression)
@@ -632,7 +634,7 @@ function addBinaryOp(
   }
 }
 
-function addEvaluator(nodeType: string, evaluator: evaluatorCallback): void {
+function addEvaluatorSync(nodeType: string, evaluator: evaluatorCallback): void {
   evaluators[nodeType] = evaluator;
 }
 
@@ -643,13 +645,14 @@ function addEvaluatorAsync(nodeType: string, evaluator: evaluatorCallback): void
 export {
   jsep,
   jsep as parse,
-  evaluate,
-  evaluate as eval,
+  evalSync,
+  evalSync as eval,
   evalAsync,
-  compile,
+  compileSync,
+  compileSync as compile,
   compileAsync,
   addUnaryOp,
   addBinaryOp,
-  addEvaluator,
+  addEvaluatorSync,
   addEvaluatorAsync,
 };

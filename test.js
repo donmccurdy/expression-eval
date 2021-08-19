@@ -174,7 +174,7 @@ expr.addBinaryOp('#', (a, b) => a + b / 10);
 
 expr.addBinaryOp('~', 1, (a, b) => a * b);
 
-expr.addEvaluator('TestNodeType', (node, context) => node.test + context.string);
+expr.addEvaluatorSync('TestNodeType', (node, context) => node.test + context.string);
 expr.addEvaluatorAsync('TestNodeType', async (node, context) => await node.test + await context.string);
 
 tape('sync', (t) => {
