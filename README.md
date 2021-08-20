@@ -77,20 +77,35 @@ fn({foo: {bar: 'baz'}}); // 'baz10'
 
 Alternatively, use `compileAsync` for asynchronous compilation.
 
+### Node Types supported:
+This project will try to stay current with all JSEP's node types::
+- `ArrayExpression`
+- `LogicalExpression`/`BinaryExpression`
+- `CallExpression`
+- `ConditionalExpression`
+- `Identifier`
+- `Literal`
+- `MemberExpression`
+- `ThisExpression`
+- `UnaryExpression`
+
+As well as the optional plugin node types:
+- `ArrowFunctionExpression`
+- `AssignmentExpression`/`UpdateExpression`
+- `NewExpression`
+- `ObjectExpression`
+- `SpreadElement`
+- `TaggedTemplateExpression`/`TemplateLiteral`
+
 ### Extending evaluation
 
-The base evaluation supports the default jsep syntax,
-as well as its plugin node types. To modify the
-evaluation, use any of the modification methods:
-- addUnaryOp(operator, evaluator).
-Will add the operator to jsep, and the function
-to evaluate the operator
-- addBinaryOp(operator, precedence | evaluator, evaluator).
-Will add the operator to jsep at the given precedence
-(if provided), and the function to evaluate the operator
-- addEvaluatorSync/addEvaluatorAsync(nodeType, evaluator).
-Will add the evaluator function to the map of functions
-for each node type.
+To modify the evaluation, use any of the modification methods:
+- `addUnaryOp(operator, evaluator)`. Will add the operator to jsep, and the function to evaluate the operator
+- `addBinaryOp(operator, precedence | evaluator, evaluator)`. Will add the operator to jsep at the given
+precedence (if provided), and the function to evaluate the operator
+- `addEvaluator(nodeType, evaluator)`. Will add the evaluator function to the map of functions
+for each node type. This evaluator will be called with the ExpressionEval instance bound to it.
+The evaluator is responsible for handling both sync and async, as needed.
 
 ## Security
 

@@ -174,8 +174,7 @@ expr.addBinaryOp('#', (a, b) => a + b / 10);
 
 expr.addBinaryOp('~', 1, (a, b) => a * b);
 
-expr.addEvaluatorSync('TestNodeType', (node, context) => node.test + context.string);
-expr.addEvaluatorAsync('TestNodeType', async (node, context) => await node.test + await context.string);
+expr.addEvaluator('TestNodeType', function(node) { return node.test + this.context.string });
 
 tape('sync', (t) => {
   const syncFixtures = [
@@ -263,5 +262,11 @@ tape('errors', async (t) => {
   t.throws(() => expr.compile(`a[b]()`)({a: 1, b: '2'}), /'b' is not a function/, 'invalid dynamic function');
   t.throws(() => expr.compile(`new a()`)({a: () => 1}), /not a constructor/, 'invalid new');
   t.throws(() => expr.compile('a:1')({a: 1}), /not a function/);
-  t.end();
+
+  try {
+    await expr.compileAsync('Promise.reject(new Error("abcd"))')({ Promise, Error });
+    t.throws(() => {});
+  } catch (e) {
+    t.throws(() => { throw e; }, /abcd/, 'async rejection');
+  }
 });
