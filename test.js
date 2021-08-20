@@ -4,6 +4,7 @@ const expr = require('./dist/expression-eval.js');
 const tape = require('tape');
 expr.parse.plugins.register(require('@jsep/plugin-arrow'));
 expr.parse.plugins.register(require('@jsep/plugin-assignment'));
+expr.parse.plugins.register(require('@jsep/plugin-async-await'));
 expr.parse.plugins.register(require('@jsep/plugin-new'));
 expr.parse.plugins.register(require('@jsep/plugin-object'));
 expr.parse.plugins.register(require('@jsep/plugin-regex'));
@@ -101,6 +102,21 @@ const fixtures = [
   {expr: '(1 # 2 # 3)', expected: 1.5   }, // Fails with undefined precedence, see issue #45
   {expr: '1 + 2 ~ 3',   expected: 9     }, // ~ is * but with low precedence
 
+  // Arrow Functions
+  {expr: '[1,2].find(v => v === 2)',                     expected: 2                                  },
+  {expr: 'list.reduce((sum, v) => sum + v, 0)',          expected: 15                                 },
+  {expr: 'list.find(() => false)',                       expected: undefined                          },
+  {expr: 'list.findIndex(v => v === 3)',                 expected: 2                                  },
+  {expr: '[1].map(() => ({ a: 1 }))',                    expected: [{ a: 1 }]                         },
+  {expr: '[[1, 2]].map([a, b] => a + b)',                expected: [3]                                },
+  {expr: '[[1, 2]].map(([a, b] = []) => a+b)',           expected: [3]                                },
+  {expr: '[[1,],undefined].map(([a=2, b=5]=[]) => a+b)', expected: [6, 7]                             },
+  {expr: '[{a:1}].map(({a}) => a)',                      expected: [1]                                },
+  {expr: '[undefined].map(({a=1}={}) => a)',             expected: [1]                                },
+  {expr: '[1, 2].map((a, ...b) => [a, b])',              expected: [ [1, [0,[1,2]]], [2, [1,[1,2]]] ] },
+  {expr: '[{a:1,b:2,c:3}].map(({a, ...b}) => [a, b])',   expected: [[1, {b:2,c:3}]]                   },
+  {expr: '[{a:1}].map(({...foo}) => foo.a)',             expected: [1]                                },
+
   // assignment/update
   {expr: 'a = 2', expected: 2, context: {a: 1}, expObj: {a: 2}},
   {expr: 'a += 2', expected: 3, context: {a: 1}, expObj: {a: 3}},
@@ -148,6 +164,11 @@ const context = {
   sub: { sub2: { Date } },
   tag: (strings, ...expand) => [...strings, '=>', ...expand].join(','),
   promise: (v) => Promise.resolve(v),
+  Promise,
+  asyncFunc: async (a, b) => await a + b,
+  promiseFunc: (a, b) => new Promise((resolve, reject) => {
+    setTimeout(() => resolve(a + b), 1000);
+  }),
 };
 
 const cloneDeep = (obj) => {
@@ -178,20 +199,12 @@ expr.addEvaluator('TestNodeType', function(node) { return node.test + this.conte
 
 tape('sync', (t) => {
   const syncFixtures = [
-    // Arrow Functions
-    {expr: '[1,2].find(v => v === 2)',                     expected: 2                                  },
-    {expr: 'list.reduce((sum, v) => sum + v, 0)',          expected: 15                                 },
-    {expr: 'list.find(() => false)',                       expected: undefined                          },
-    {expr: 'list.findIndex(v => v === 3)',                 expected: 2                                  },
-    {expr: '[1].map(() => ({ a: 1 }))',                    expected: [{ a: 1 }]                         },
-    {expr: '[[1, 2]].map([a, b] => a + b)',                expected: [3]                                },
-    {expr: '[[1, 2]].map(([a, b] = []) => a+b)',           expected: [3]                                },
-    {expr: '[[1,],undefined].map(([a=2, b=5]=[]) => a+b)', expected: [6, 7]                             },
-    {expr: '[{a:1}].map(({a}) => a)',                      expected: [1]                                },
-    {expr: '[undefined].map(({a=1}={}) => a)',             expected: [1]                                },
-    {expr: '[1, 2].map((a, ...b) => [a, b])',              expected: [ [1, [0,[1,2]]], [2, [1,[1,2]]] ] },
-    {expr: '[{a:1,b:2,c:3}].map(({a, ...b}) => [a, b])',   expected: [[1, {b:2,c:3}]]                   },
-    {expr: '[{a:1}].map(({...foo}) => foo.a)',             expected: [1]                                },
+    // async/await
+    {expr: 'await 2', expected: Promise.resolve(2)},
+    {expr: 'await Promise.resolve(3)', expected: Promise.resolve(3)},
+    {expr: 'await asyncFunc(1, 2)', expected: Promise.resolve(3)},
+    {expr: 'asyncFunc(1, 2)', expected: Promise.resolve(3)},
+    {expr: '[1, 2].'}
   ];
 
   [...fixtures, ...syncFixtures].forEach((o) => {
@@ -212,24 +225,18 @@ tape('sync', (t) => {
 
 tape('async', async (t) => {
   const asyncContext = context;
-  asyncContext.asyncFunc = async function(a, b) {
-    return await a + b;
-  };
-  asyncContext.promiseFunc = function(a, b) {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => resolve(a + b), 1000);
-    })
-  }
-  const asyncFixtures = fixtures;
-  asyncFixtures.push({
-    expr: 'asyncFunc(one, two)',
-    expected: 3,
-  }, {
-    expr: 'promiseFunc(one, two)',
-    expected: 3,
-  });
+  const asyncFixtures = [
+    {expr: 'asyncFunc(one, two)',   expected: 3},
+    {expr: 'promiseFunc(one, two)', expected: 3},
 
-  for (let o of asyncFixtures) {
+    // async/await
+    {expr: 'await 2', expected: 2},
+    {expr: 'await Promise.resolve(3)', expected: 3},
+    {expr: 'await asyncFunc(1, 2)', expected: 3},
+    {expr: 'asyncFunc(1, 2)', expected: 3},
+  ];
+
+  for (let o of [...fixtures, ...asyncFixtures]) {
     const ctx = cloneDeep(o.context || asyncContext);
     const val = await expr.compileAsync(o.expr)(ctx);
     const compare = t[typeof o.expected === 'object' ? 'deepEqual' : 'equal'];

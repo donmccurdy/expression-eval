@@ -1,5 +1,6 @@
 import { ArrowExpression } from '@jsep/plugin-arrow';
 import { AssignmentExpression, UpdateExpression } from '@jsep/plugin-assignment';
+import { AwaitExpression } from '@jsep/plugin-async-await';
 import { NewExpression } from '@jsep/plugin-new';
 import { ObjectExpression, Property } from '@jsep/plugin-object';
 import { SpreadElement } from '@jsep/plugin-spread';
@@ -31,6 +32,7 @@ type AnyExpression = jsep.ArrayExpression
   | ArrowExpression
   | UpdateExpression
   | AssignmentExpression
+  | AwaitExpression
   | NewExpression
   | ObjectExpression
   | Property
@@ -59,6 +61,7 @@ export default class ExpressionEval {
     'ArrowFunctionExpression': ExpressionEval.prototype.evalArrowFunctionExpression,
     'AssignmentExpression': ExpressionEval.prototype.evalAssignmentExpression,
     'UpdateExpression': ExpressionEval.prototype.evalUpdateExpression,
+    'AwaitExpression': ExpressionEval.prototype.evalAwaitExpression,
     'NewExpression': ExpressionEval.prototype.evalNewExpression,
     'ObjectExpression': ExpressionEval.prototype.evalObjectExpression,
     'SpreadElement': ExpressionEval.prototype.evalSpreadElement,
@@ -314,9 +317,12 @@ export default class ExpressionEval {
   }
 
   private evalArrowFunctionExpression(node: ArrowExpression) {
+    if (this.isAsync !== node.async) {
+      return ExpressionEval[node.async ? 'evalAsync' : 'eval'](node as any, this.context);
+    }
     return (...arrowArgs) => {
       const arrowContext = this.evalArrowContext(node, arrowArgs);
-      return ExpressionEval.eval(node.body, arrowContext);
+      return ExpressionEval[node.async ? 'evalAsync' : 'eval'](node.body, arrowContext);
     };
   }
 
@@ -413,6 +419,10 @@ export default class ExpressionEval {
       ([destObj, destKey]) => ExpressionEval
         .evalUpdateOperation(node, destObj, destKey)
     );
+  }
+
+  private evalAwaitExpression(node: AwaitExpression) {
+    return ExpressionEval.evalAsync(node.argument, this.context);
   }
 
   private static evalUpdateOperation(node: UpdateExpression, destObj, destKey) {
