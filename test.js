@@ -2,15 +2,15 @@ require('source-map-support').install();
 
 const expr = require('./dist/expression-eval.js');
 const tape = require('tape');
-expr.parse.plugins.register(require('@jsep/plugin-arrow'));
-expr.parse.plugins.register(require('@jsep/plugin-assignment'));
-expr.parse.plugins.register(require('@jsep/plugin-async-await'));
-expr.parse.plugins.register(require('@jsep/plugin-new'));
-expr.parse.plugins.register(require('@jsep/plugin-object'));
-expr.parse.plugins.register(require('@jsep/plugin-regex'));
-expr.parse.plugins.register(require('@jsep/plugin-spread'));
-expr.parse.plugins.register(require('@jsep/plugin-template'));
-expr.parse.plugins.register(require('@jsep/plugin-ternary'));
+expr.parse.plugins.register(require('@jsep-plugin/arrow'));
+expr.parse.plugins.register(require('@jsep-plugin/assignment'));
+expr.parse.plugins.register(require('@jsep-plugin/async-await'));
+expr.parse.plugins.register(require('@jsep-plugin/new'));
+expr.parse.plugins.register(require('@jsep-plugin/object'));
+expr.parse.plugins.register(require('@jsep-plugin/regex'));
+expr.parse.plugins.register(require('@jsep-plugin/spread'));
+expr.parse.plugins.register(require('@jsep-plugin/template'));
+expr.parse.plugins.register(require('@jsep-plugin/ternary'));
 
 const fixtures = [
 

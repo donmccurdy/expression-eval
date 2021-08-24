@@ -1,10 +1,10 @@
-import { ArrowExpression } from '@jsep/plugin-arrow';
-import { AssignmentExpression, UpdateExpression } from '@jsep/plugin-assignment';
-import { AwaitExpression } from '@jsep/plugin-async-await';
-import { NewExpression } from '@jsep/plugin-new';
-import { ObjectExpression, Property } from '@jsep/plugin-object';
-import { SpreadElement } from '@jsep/plugin-spread';
-import { TaggedTemplateExpression, TemplateElement, TemplateLiteral } from '@jsep/plugin-template';
+import { ArrowExpression } from '@jsep-plugin/arrow';
+import { AssignmentExpression, UpdateExpression } from '@jsep-plugin/assignment';
+import { AwaitExpression } from '@jsep-plugin/async-await';
+import { NewExpression } from '@jsep-plugin/new';
+import { ObjectExpression, Property } from '@jsep-plugin/object';
+import { SpreadElement } from '@jsep-plugin/spread';
+import { TaggedTemplateExpression, TemplateElement, TemplateLiteral } from '@jsep-plugin/template';
 import jsep from 'jsep';
 
 /**
