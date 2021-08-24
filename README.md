@@ -92,6 +92,7 @@ This project will try to stay current with all JSEP's node types::
 As well as the optional plugin node types:
 - `ArrowFunctionExpression`
 - `AssignmentExpression`/`UpdateExpression`
+- `AwaitExpression`
 - `NewExpression`
 - `ObjectExpression`
 - `SpreadElement`
@@ -105,7 +106,11 @@ To modify the evaluation, use any of the modification methods:
 precedence (if provided), and the function to evaluate the operator
 - `addEvaluator(nodeType, evaluator)`. Will add the evaluator function to the map of functions
 for each node type. This evaluator will be called with the ExpressionEval instance bound to it.
-The evaluator is responsible for handling both sync and async, as needed.
+The evaluator is responsible for handling both sync and async, as needed, but can use the `this.isAsync`
+or `this.evalSyncAsync()` to help.
+  - If the node type is unknown, expression-eval will check for a `default` node type handler before
+  throwing an error for an unknown node type. If any other behavior is desired, this can be overridden
+  by providing a new `default` evaluator.
 
 ## Security
 

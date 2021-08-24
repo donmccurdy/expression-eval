@@ -204,7 +204,6 @@ tape('sync', (t) => {
     {expr: 'await Promise.resolve(3)', expected: Promise.resolve(3)},
     {expr: 'await asyncFunc(1, 2)', expected: Promise.resolve(3)},
     {expr: 'asyncFunc(1, 2)', expected: Promise.resolve(3)},
-    {expr: '[1, 2].'}
   ];
 
   [...fixtures, ...syncFixtures].forEach((o) => {

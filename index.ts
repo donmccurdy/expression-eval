@@ -194,7 +194,8 @@ export default class ExpressionEval {
   }
 
   public eval(node: unknown, cb = v => v): unknown {
-    const evaluator = ExpressionEval.evaluators[(node as jsep.Expression).type];
+    const evaluator = ExpressionEval.evaluators[(node as jsep.Expression).type]
+      || ExpressionEval.evaluators.default;
     if (!evaluator) {
       throw new Error(`unknown node type: ${JSON.stringify(node, null, 2)}`);
     }
