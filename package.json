@@ -16,7 +16,8 @@
     "build": "microbundle",
     "test": "node test.js | tap-spec",
     "preversion": "npm run build && npm test",
-    "postversion": "git push && git push --tags && npm publish"
+    "postversion": "git push && git push --tags && npm publish",
+    "prepare": "npm run build"
   },
   "keywords": [
     "expression",
