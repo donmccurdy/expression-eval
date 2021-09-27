@@ -26,7 +26,6 @@ type AnyExpression = jsep.ArrayExpression
   | jsep.ConditionalExpression
   | jsep.Identifier
   | jsep.Literal
-  | jsep.LogicalExpression
   | jsep.ThisExpression
   | jsep.UnaryExpression
   | ArrowExpression
@@ -49,7 +48,6 @@ export default class ExpressionEval {
 
   static evaluators: Record<string, evaluatorCallback> = {
     'ArrayExpression': ExpressionEval.prototype.evalArrayExpression,
-    'LogicalExpression': ExpressionEval.prototype.evalBinaryExpression,
     'BinaryExpression': ExpressionEval.prototype.evalBinaryExpression,
     'CallExpression': ExpressionEval.prototype.evalCallExpression,
     'ConditionalExpression': ExpressionEval.prototype.evalConditionalExpression,
@@ -126,19 +124,19 @@ export default class ExpressionEval {
   };
 
   static assignOps: Record<string, assignCallback> = {
-    '=': function(obj, key, val) { return obj[key] = val; },
-    '*=': function(obj, key, val) { return obj[key] *= val; },
-    '**=': function(obj, key, val) { return obj[key] **= val; },
-    '/=': function(obj, key, val) { return obj[key] /= val; },
-    '%=': function(obj, key, val) { return obj[key] %= val; },
-    '+=': function(obj, key, val) { return obj[key] += val; },
-    '-=': function(obj, key, val) { return obj[key] -= val; },
-    '<<=': function(obj, key, val) { return obj[key] <<= val; },
-    '>>=': function(obj, key, val) { return obj[key] >>= val; },
-    '>>>=': function(obj, key, val) { return obj[key] >>>= val; },
-    '&=': function(obj, key, val) { return obj[key] &= val; },
-    '^=': function(obj, key, val) { return obj[key] ^= val; },
-    '|=': function(obj, key, val) { return obj[key] |= val; },
+    '=': function (obj, key, val) { return obj[key] = val; },
+    '*=': function (obj, key, val) { return obj[key] *= val; },
+    '**=': function (obj, key, val) { return obj[key] **= val; },
+    '/=': function (obj, key, val) { return obj[key] /= val; },
+    '%=': function (obj, key, val) { return obj[key] %= val; },
+    '+=': function (obj, key, val) { return obj[key] += val; },
+    '-=': function (obj, key, val) { return obj[key] -= val; },
+    '<<=': function (obj, key, val) { return obj[key] <<= val; },
+    '>>=': function (obj, key, val) { return obj[key] >>= val; },
+    '>>>=': function (obj, key, val) { return obj[key] >>>= val; },
+    '&=': function (obj, key, val) { return obj[key] &= val; },
+    '^=': function (obj, key, val) { return obj[key] ^= val; },
+    '|=': function (obj, key, val) { return obj[key] |= val; },
   };
 
   // inject Custom Unary Operators (and override existing ones)
@@ -244,7 +242,7 @@ export default class ExpressionEval {
       : toFullArray(mapped);
   }
 
-  private evalBinaryExpression(node: jsep.BinaryExpression | jsep.LogicalExpression) {
+  private evalBinaryExpression(node: jsep.BinaryExpression) {
     if (node.operator === '||') {
       return this.eval(node.left, left => left || this.eval(node.right));
     } else if (node.operator === '&&') {
@@ -495,10 +493,10 @@ export default class ExpressionEval {
       this.evalCall(node.tag),
       this.evalSyncAsync(
         this.evalArray(node.quasi.expressions),
-          exprs => [
-            node.quasi.quasis.map(q => q.value.cooked),
-            ...exprs,
-          ]
+        exprs => [
+          node.quasi.quasis.map(q => q.value.cooked),
+          ...exprs,
+        ]
       ),
     ];
     const apply = ([[fn, caller], args]) => fn.apply(caller, args);
@@ -516,7 +514,7 @@ export default class ExpressionEval {
           str += expressions[i];
         }
         return str;
-        }, '')
+      }, '')
     );
   }
 
