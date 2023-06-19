@@ -7,7 +7,9 @@
 
 JavaScript expression parsing and evaluation.
 
-> **IMPORTANT:** As mentioned under [Security](#security) below, this library does not attempt to provide a secure sandbox for evaluation. Evaluation involving user inputs (expressions or values) may lead to unsafe behavior. If your project requires a secure sandbox, consider alternatives such as [vm2](https://www.npmjs.com/package/vm2).
+> ⚠️ **UNMAINTAINED:** The `expression-eval` npm package is no longer maintained. The package was originally published as part of a now-completed personal project, and I do not have incentives to continue maintenance. Please feel free to use the code, but be aware that support and updates will not be available.
+
+> ⚠️ **SECURITY NOTICE:** As mentioned under [Security](#security) below, this library does not attempt to provide a secure sandbox for evaluation. Evaluation involving user inputs (expressions or values) may lead to unsafe behavior. If your project requires a secure sandbox, consider alternatives such as [vm2](https://www.npmjs.com/package/vm2).
 
 Powered by [jsep](https://github.com/soney/jsep).
 
